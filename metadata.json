@@ -1,0 +1,13 @@
+{
+  "name": "Remix: California Road Trip",
+  "description": "Real-time family tracking, weather, traffic, and Disneyland alerts for your road trip adventures.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "real-time location sharing",
+    "weather updates",
+    "traffic alerts",
+    "personalized suggestions"
+  ]
+}

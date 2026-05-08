@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable helpers
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    
+    function isAllowed() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/allowed_emails/$(request.auth.token.email)) ||
+        request.auth.token.email == 'gsmastersinc@gmail.com' // App Creator / Admin
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // ... other helpers ...
+    
+    match /allowed_emails/{email} {
+      allow read: if isSignedIn();
+      allow write: if isAllowed();
+    }
+
+    // User Profile & Location Rules
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == request.auth.uid 
+            && data.displayName is string && data.displayName.size() <= 100;
+      }
+
+      allow get, list: if isAllowed();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isAllowed();
+
+      match /trails/{trailId} {
+        allow read: if isAllowed();
+        allow create: if isOwner(userId);
+      }
+    }
+
+    // Alerts Rules
+    match /alerts/{alertId} {
+      allow read: if isAllowed();
+      allow write: if isAllowed();
+    }
+  }
+}

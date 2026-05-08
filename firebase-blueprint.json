@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Family member tracking profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "email": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "alertsEnabled": { "type": "boolean" }
+          }
+        }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "Shared road trip alerts (Disney, Traffic, etc.)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["disney", "traffic", "site", "weather"] },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "title", "content"]
+    },
+    "Trail": {
+      "title": "Trail",
+      "description": "Breadcrumb trail point",
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "activity": { "type": "string", "enum": ["walking", "driving", "stationary"] }
+      },
+      "required": ["lat", "lng", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and real-time locations"
+    },
+    "/users/{userId}/trails/{trailId}": {
+      "schema": "Trail",
+      "description": "Individual location history points"
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Shared alerts and notifications"
+    },
+    "/allowed_emails/{email}": {
+      "schema": { "type": "object", "properties": { "addedAt": { "type": "string" } } },
+      "description": "Permitted email addresses for the family group"
+    }
+  }
+}
