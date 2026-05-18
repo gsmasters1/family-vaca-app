@@ -1,0 +1,75 @@
+import axios from "axios";
+
+const api = axios.create({ baseURL: "/api" });
+
+export interface Quote {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  marketCap?: number;
+  assetType: "stock" | "crypto" | "etf" | "derivative";
+}
+
+export interface PortfolioPosition {
+  id: number;
+  symbol: string;
+  name: string;
+  assetType: string;
+  shares: number;
+  avgCost: number;
+  currentPrice: number;
+  value: number;
+  gainLoss: number;
+  gainLossPct: number;
+}
+
+export interface WatchlistItem {
+  id: number;
+  symbol: string;
+  assetType: string;
+  notes: string;
+  addedAt: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export const marketApi = {
+  getQuote: (symbol: string) => api.get<Quote>(`/market/quote/${symbol}`),
+  getQuotes: (symbols: string[]) =>
+    api.get<Quote[]>(`/market/quotes?symbols=${symbols.join(",")}`),
+  getHistory: (symbol: string, period = "1mo") =>
+    api.get(`/market/history/${symbol}?period=${period}`),
+  getTopMovers: () => api.get<Quote[]>("/market/movers"),
+};
+
+export const portfolioApi = {
+  getPositions: () => api.get<PortfolioPosition[]>("/portfolio/positions"),
+  addPosition: (data: {
+    symbol: string;
+    shares: number;
+    avgCost: number;
+    assetType: string;
+  }) => api.post("/portfolio/positions", data),
+  removePosition: (id: number) => api.delete(`/portfolio/positions/${id}`),
+  getSummary: () => api.get("/portfolio/summary"),
+};
+
+export const watchlistApi = {
+  getItems: () => api.get<WatchlistItem[]>("/watchlist"),
+  addItem: (symbol: string, assetType: string, notes = "") =>
+    api.post("/watchlist", { symbol, assetType, notes }),
+  removeItem: (id: number) => api.delete(`/watchlist/${id}`),
+};
+
+export const aiApi = {
+  chat: (messages: ChatMessage[], context?: string) =>
+    api.post<{ reply: string }>("/ai/chat", { messages, context }),
+  analyzeSymbol: (symbol: string) =>
+    api.get<{ analysis: string }>(`/ai/analyze/${symbol}`),
+};
