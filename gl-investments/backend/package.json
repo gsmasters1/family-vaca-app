@@ -1,6 +1,6 @@
 {
   "name": "gl-investments-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
@@ -10,12 +10,15 @@
   "dependencies": {
     "axios": "^1.7.7",
     "better-sqlite3": "^11.3.0",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "rss-parser": "^3.13.0",
     "yahoo-finance2": "^2.11.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
+    "@types/cheerio": "^0.22.35",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.4",

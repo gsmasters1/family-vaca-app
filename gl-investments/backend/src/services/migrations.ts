@@ -129,6 +129,39 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 6,
+    description: "Add intelligence feed (web scraper results with trust scores)",
+    up: `
+      CREATE TABLE IF NOT EXISTS intelligence_feed (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        summary TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        source TEXT NOT NULL,
+        published_at TEXT,
+        tickers TEXT DEFAULT '[]',
+        category TEXT DEFAULT 'news',
+        trust_score INTEGER DEFAULT 0,
+        trust_tier TEXT DEFAULT 'MIXED',
+        flags TEXT DEFAULT '[]',
+        sentiment TEXT DEFAULT 'neutral',
+        fetched_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_intel_trust ON intelligence_feed(trust_score DESC);
+      CREATE INDEX IF NOT EXISTS idx_intel_ticker ON intelligence_feed(tickers);
+    `,
+  },
+  {
+    version: 7,
+    description: "Add risk_profile to app_settings",
+    up: `
+      INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+        ('risk_profile', 'moderate', 'Portfolio risk profile: conservative | moderate | aggressive'),
+        ('fred_api_key', 'none', 'FRED API key for macro data (free at fred.stlouisfed.org/docs/api/api_key.html)'),
+        ('intel_min_trust_score', '40', 'Minimum trust score to display in intelligence feed');
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

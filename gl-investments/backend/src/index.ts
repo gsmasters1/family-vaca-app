@@ -11,6 +11,8 @@ import signalsRoutes from "./routes/signals";
 import settingsRoutes from "./routes/settings";
 import ipoRoutes from "./routes/ipo";
 import predictionsRoutes from "./routes/predictions";
+import intelligenceRoutes from "./routes/intelligence";
+import riskRoutes from "./routes/risk";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -29,7 +31,10 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/ipo", ipoRoutes);
 app.use("/api/predictions", predictionsRoutes);
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "2.0.0" }));
+app.use("/api/intelligence", intelligenceRoutes);
+app.use("/api/risk", riskRoutes);
+
+app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 
 initDb();
 

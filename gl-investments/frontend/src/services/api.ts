@@ -112,3 +112,21 @@ export const settingsApi = {
   update: (key: string, value: string) => api.put(`/settings/${key}`, { value }),
   getModules: () => api.get("/settings/modules"),
 };
+
+export const intelligenceApi = {
+  getFeed: (minScore = 40, category?: string, limit = 100) =>
+    api.get(`/intelligence/feed?minScore=${minScore}${category ? `&category=${category}` : ""}&limit=${limit}`),
+  refresh: () => api.post("/intelligence/refresh"),
+  getFearGreed: () => api.get("/intelligence/fear-greed"),
+  getMacro: () => api.get("/intelligence/macro"),
+  getByTicker: (symbol: string) => api.get(`/intelligence/tickers/${symbol}`),
+};
+
+export const riskApi = {
+  getPortfolio: (profile?: string) =>
+    api.get(`/risk/portfolio${profile ? `?profile=${profile}` : ""}`),
+  getProfile: () => api.get("/risk/profile"),
+  setProfile: (profile: string) => api.put("/risk/profile", { profile }),
+  scoreSignal: (symbol: string, assetType: string, confidence: number) =>
+    api.get(`/risk/signal/${symbol}?assetType=${assetType}&confidence=${confidence}`),
+};

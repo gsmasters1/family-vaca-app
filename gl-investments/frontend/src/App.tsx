@@ -1,7 +1,8 @@
 import { Routes, Route, NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
-  Zap, Landmark, Gem, Rocket, LineChart, Settings2
+  Zap, Landmark, Gem, Rocket, LineChart, Settings2,
+  Newspaper, ShieldCheck
 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -14,10 +15,14 @@ import Commodities from "./pages/Commodities";
 import IPOTracker from "./pages/IPOTracker";
 import Predictions from "./pages/Predictions";
 import Settings from "./pages/Settings";
+import Intelligence from "./pages/Intelligence";
+import RiskManager from "./pages/RiskManager";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/signals", icon: Zap, label: "Signals" },
+  { to: "/intelligence", icon: Newspaper, label: "Intelligence" },
+  { to: "/risk", icon: ShieldCheck, label: "Risk Manager" },
   { to: "/congress", icon: Landmark, label: "Congress Trades" },
   { to: "/predictions", icon: LineChart, label: "Predictions" },
   { to: "/ipo", icon: Rocket, label: "IPO Tracker" },
@@ -76,6 +81,8 @@ export default function App() {
           <Route path="/ipo" element={<IPOTracker />} />
           <Route path="/predictions" element={<Predictions />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/intelligence" element={<Intelligence />} />
+          <Route path="/risk" element={<RiskManager />} />
         </Routes>
       </main>
     </div>
