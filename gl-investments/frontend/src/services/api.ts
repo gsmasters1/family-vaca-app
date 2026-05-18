@@ -92,3 +92,23 @@ export const signalsApi = {
   getTop: (limit = 10) => api.get(`/signals/top?limit=${limit}`),
   refresh: () => api.get("/signals/refresh"),
 };
+
+export const ipoApi = {
+  getFilings: () => api.get("/ipo/filings"),
+  refresh: () => api.get("/ipo/filings/refresh"),
+  score: (id: string) => api.post(`/ipo/score/${id}`),
+  getLockupExpiring: (within = 30) => api.get(`/ipo/lockup-expiring?within=${within}`),
+};
+
+export const predictionsApi = {
+  get: (symbol: string) => api.get(`/predictions/${symbol}`),
+  clearCache: (symbol: string) => api.delete(`/predictions/${symbol}/cache`),
+  batchWatchlist: () => api.get("/predictions/batch/watchlist"),
+  batchPortfolio: () => api.get("/predictions/batch/portfolio"),
+};
+
+export const settingsApi = {
+  getAll: () => api.get("/settings"),
+  update: (key: string, value: string) => api.put(`/settings/${key}`, { value }),
+  getModules: () => api.get("/settings/modules"),
+};

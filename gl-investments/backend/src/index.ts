@@ -8,6 +8,9 @@ import aiRoutes from "./routes/ai";
 import congressRoutes from "./routes/congress";
 import commoditiesRoutes from "./routes/commodities";
 import signalsRoutes from "./routes/signals";
+import settingsRoutes from "./routes/settings";
+import ipoRoutes from "./routes/ipo";
+import predictionsRoutes from "./routes/predictions";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -22,8 +25,11 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/congress", congressRoutes);
 app.use("/api/commodities", commoditiesRoutes);
 app.use("/api/signals", signalsRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/ipo", ipoRoutes);
+app.use("/api/predictions", predictionsRoutes);
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "2.0.0" }));
 
 initDb();
 

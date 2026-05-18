@@ -1,5 +1,8 @@
 import { Routes, Route, NavLink } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Star, Bot, TrendingUp, Zap, Landmark, Gem } from "lucide-react";
+import {
+  LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
+  Zap, Landmark, Gem, Rocket, LineChart, Settings2
+} from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import Watchlist from "./pages/Watchlist";
@@ -8,16 +11,22 @@ import Markets from "./pages/Markets";
 import SignalDashboard from "./pages/SignalDashboard";
 import CongressTrades from "./pages/CongressTrades";
 import Commodities from "./pages/Commodities";
+import IPOTracker from "./pages/IPOTracker";
+import Predictions from "./pages/Predictions";
+import Settings from "./pages/Settings";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/portfolio", icon: Briefcase, label: "Portfolio" },
-  { to: "/watchlist", icon: Star, label: "Watchlist" },
-  { to: "/markets", icon: TrendingUp, label: "Markets" },
-  { to: "/ai-advisor", icon: Bot, label: "AI Advisor" },
   { to: "/signals", icon: Zap, label: "Signals" },
   { to: "/congress", icon: Landmark, label: "Congress Trades" },
+  { to: "/predictions", icon: LineChart, label: "Predictions" },
+  { to: "/ipo", icon: Rocket, label: "IPO Tracker" },
   { to: "/commodities", icon: Gem, label: "Commodities" },
+  { to: "/markets", icon: TrendingUp, label: "Markets" },
+  { to: "/portfolio", icon: Briefcase, label: "Portfolio" },
+  { to: "/watchlist", icon: Star, label: "Watchlist" },
+  { to: "/ai-advisor", icon: Bot, label: "AI Advisor" },
+  { to: "/settings", icon: Settings2, label: "Settings" },
 ];
 
 export default function App() {
@@ -64,6 +73,9 @@ export default function App() {
           <Route path="/signals" element={<SignalDashboard />} />
           <Route path="/congress" element={<CongressTrades />} />
           <Route path="/commodities" element={<Commodities />} />
+          <Route path="/ipo" element={<IPOTracker />} />
+          <Route path="/predictions" element={<Predictions />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
     </div>
