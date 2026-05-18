@@ -146,7 +146,10 @@ export function scoreTechnical(
 }
 
 // ─── Congressional edge scorer ────────────────────────────────────────────
-export function scoreCongressional(symbol: string): {
+export function scoreCongressional(
+  symbol: string,
+  insiderSignal: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL" = "NEUTRAL"
+): {
   score: number;
   notes: string[];
   risks: string[];
@@ -207,13 +210,26 @@ export function scoreCongressional(symbol: string): {
     risks.push(`${sales.cnt} congressional sale(s) in last 60 days — mixed signal`);
   }
 
+  // Insider signal (Form 4): C-suite spending personal money = aligned interest
+  if (insiderSignal === "STRONG_BUY") {
+    score = Math.min(score + 8, WEIGHTS.congressional);
+    notes.push("Cluster insider buying detected (Form 4) — multiple insiders putting personal capital at risk");
+  } else if (insiderSignal === "BUY") {
+    score = Math.min(score + 5, WEIGHTS.congressional);
+    notes.push("Insider open-market purchase (Form 4) — executive buying with personal money");
+  } else if (insiderSignal === "SELL" || insiderSignal === "STRONG_SELL") {
+    score = Math.max(0, score - 4);
+    risks.push("Multiple insiders selling (Form 4) — distribution pattern, monitor carefully");
+  }
+
   return { score: Math.min(score, WEIGHTS.congressional), notes, risks };
 }
 
 // ─── Macro regime scorer (Druckenmiller/Dalio) ───────────────────────────
 export function scoreMacro(
   regime: MarketRegime,
-  fearGreedScore: number
+  fearGreedScore: number,
+  energyChangePct = 0
 ): { score: number; notes: string[]; risks: string[] } {
   let score = 0;
   const notes: string[] = [];
@@ -250,6 +266,19 @@ export function scoreMacro(
     notes.push(`Fear & Greed ${fearGreedScore} — extreme fear, contrarian opportunity`);
   } else {
     score += 3;
+  }
+
+  // Energy overlay: oil price direction = real-time inflation pressure signal
+  // Sharp oil spike → stagflation risk → Fed stays hawkish → headwind for growth stocks
+  if (energyChangePct > 5) {
+    score -= 2;
+    risks.push(`WTI crude +${energyChangePct.toFixed(1)}% today — stagflation risk, Fed hawkish pressure`);
+  } else if (energyChangePct > 2) {
+    score -= 1;
+    risks.push(`WTI crude +${energyChangePct.toFixed(1)}% — inflationary signal, watch Fed response`);
+  } else if (energyChangePct < -4) {
+    score += 1;
+    notes.push(`WTI crude ${energyChangePct.toFixed(1)}% — demand-side easing, consumer tailwind`);
   }
 
   return { score: Math.max(0, Math.min(score, WEIGHTS.macro)), notes, risks };
@@ -333,13 +362,15 @@ export function computeApexScore(params: {
   regime: MarketRegime;
   fearGreedScore: number;
   riskProfile: string;
+  energyChangePct?: number;
+  insiderSignal?: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL";
 }): ApexScore {
-  const { symbol, price, indicators, regime, fearGreedScore, riskProfile } = params;
+  const { symbol, price, indicators, regime, fearGreedScore, riskProfile, energyChangePct = 0, insiderSignal = "NEUTRAL" } = params;
 
   const mom = scoreMomentum(indicators, price);
   const tech = scoreTechnical(indicators, price);
-  const cong = scoreCongressional(symbol);
-  const macro = scoreMacro(regime, fearGreedScore);
+  const cong = scoreCongressional(symbol, insiderSignal);
+  const macro = scoreMacro(regime, fearGreedScore, energyChangePct);
   const val = scoreValue(price, indicators);
 
   const total = mom.score + tech.score + cong.score + macro.score + val.score;

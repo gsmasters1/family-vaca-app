@@ -1,4 +1,5 @@
 import yahooFinance from "yahoo-finance2";
+import axios from "axios";
 import { getDb } from "./database";
 
 const CACHE_TTL_MINUTES = 5;
@@ -21,7 +22,43 @@ function detectAssetType(symbol: string): Quote["assetType"] {
   return "stock";
 }
 
+async function fetchFinnhubQuote(symbol: string): Promise<Quote | null> {
+  const { getSetting } = require("./appConfig") as { getSetting: (k: string) => string | null };
+  const apiKey = getSetting("finnhub_api_key");
+  if (!apiKey || apiKey === "none") return null;
+
+  // Finnhub uses different symbol format for some tickers
+  const finnhubSymbol = symbol.replace("^", "").replace("=F", "");
+
+  const res = await axios.get<{
+    c: number; d: number; dp: number; h: number; l: number; o: number; pc: number;
+  }>("https://finnhub.io/api/v1/quote", {
+    params: { symbol: finnhubSymbol, token: apiKey },
+    timeout: 5_000,
+  });
+
+  if (!res.data.c || res.data.c === 0) return null;
+
+  return {
+    symbol,
+    name: symbol,
+    price: res.data.c,
+    change: res.data.d,
+    changePct: res.data.dp,
+    volume: 0,
+    assetType: detectAssetType(symbol),
+  };
+}
+
 async function fetchLiveQuote(symbol: string): Promise<Quote> {
+  // Try Finnhub first if API key is configured (real-time data)
+  try {
+    const finnhub = await fetchFinnhubQuote(symbol);
+    if (finnhub) return finnhub;
+  } catch {
+    // Fall through to Yahoo Finance
+  }
+
   const result = await yahooFinance.quote(symbol);
   return {
     symbol: result.symbol,

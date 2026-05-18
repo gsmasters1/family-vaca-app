@@ -40,6 +40,30 @@ const COMMODITY_GROUPS: Omit<CommodityCategory, "quotes">[] = [
     whyItMatters: "Copper and industrial metals drive EV and grid infrastructure",
     symbols: ["HG=F", "COPX"],
   },
+  {
+    category: "energy",
+    label: "Energy (Oil & Gas)",
+    whyItMatters: "Rising oil = inflation pressure on Fed; falling = demand destruction or easing. APEX macro driver.",
+    symbols: ["CL=F", "BZ=F", "NG=F", "XLE", "XOP"],
+  },
+  {
+    category: "clean-energy",
+    label: "Clean Energy",
+    whyItMatters: "IRA policy tailwinds, grid buildout, and energy transition — structural multi-year demand",
+    symbols: ["FSLR", "ENPH", "NEE", "URA", "ICLN"],
+  },
+  {
+    category: "global-indices",
+    label: "Global Indices",
+    whyItMatters: "International divergence signals capital rotation — money moves when one market is cheap relative to another",
+    symbols: ["^FTSE", "^GDAXI", "^N225", "^HSI", "^GSPC"],
+  },
+  {
+    category: "global-etfs",
+    label: "International ETFs",
+    whyItMatters: "Trade global exposure without foreign currency accounts — hedge against US-only risk",
+    symbols: ["EWJ", "EEM", "FXI", "EWZ", "EWG"],
+  },
 ];
 
 export async function getCommodityCategory(
@@ -64,4 +88,14 @@ export async function getAllCommodities(): Promise<CommodityCategory[]> {
 
 export function listCategories(): string[] {
   return COMMODITY_GROUPS.map((g) => g.category);
+}
+
+// WTI crude % change — fed into APEX macro scorer as inflation pressure signal
+export async function getEnergyTrend(): Promise<number> {
+  try {
+    const quotes = await getQuotes(["CL=F"]);
+    return quotes[0]?.changePct ?? 0;
+  } catch {
+    return 0;
+  }
 }

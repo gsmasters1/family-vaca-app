@@ -12,10 +12,12 @@ import { getQuote, getHistory } from "./marketData";
 import { computeIndicators } from "./technicalAnalysis";
 import { computeApexScore, type MarketRegime } from "./apexStrategy";
 import { detectMarketRegime } from "./marketRegimeService";
+import { getEnergyTrend } from "./commoditiesService";
 import { getSetting } from "./appConfig";
 import { getDb } from "./database";
 import axios from "axios";
 import { getOllamaConfig } from "./appConfig";
+import { getInsiderSignalFromCache } from "./insiderTradesService";
 
 export type DecisionAction = "BUY" | "SELL" | "HOLD" | "AVOID" | "WATCH";
 export type DecisionUrgency = "ACT NOW" | "THIS WEEK" | "DEVELOPING" | "STANDBY";
@@ -132,15 +134,17 @@ export async function makeDecision(symbol: string): Promise<ApexDecision | null>
   const riskProfile = getSetting("risk_profile") ?? "moderate";
 
   try {
-    const [quote, history, regime] = await Promise.all([
+    const [quote, history, regime, energyChangePct] = await Promise.all([
       getQuote(symbol),
       getHistory(symbol, "1y"),
       detectMarketRegime(),
+      getEnergyTrend(),
     ]);
 
     if (history.length < 20) return null;
 
     const indicators = computeIndicators(history);
+    const insiderSignal = getInsiderSignalFromCache(symbol);
     const apex = computeApexScore({
       symbol,
       price: quote.price,
@@ -148,6 +152,8 @@ export async function makeDecision(symbol: string): Promise<ApexDecision | null>
       regime: regime.regime,
       fearGreedScore: regime.fearGreed,
       riskProfile,
+      energyChangePct,
+      insiderSignal,
     });
 
     // Check congressional backing

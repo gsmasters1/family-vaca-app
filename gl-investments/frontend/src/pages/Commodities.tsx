@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Gem, RefreshCw } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { TrendingUp, TrendingDown, Globe, Flame, RefreshCw } from "lucide-react";
 import { commoditiesApi } from "../services/api";
 
 interface Quote {
@@ -20,9 +20,13 @@ interface CommodityCategory {
   quotes: Quote[];
 }
 
+const INDEX_SYMBOLS = new Set(["^FTSE", "^GDAXI", "^N225", "^HSI", "^GSPC", "^DJI", "^IXIC"]);
+const RATE_SYMBOLS = new Set(["^TNX", "^IRX"]);
+
 function formatPrice(price: number, symbol: string): string {
-  if (symbol === "^TNX" || symbol === "^IRX") {
-    return `${price.toFixed(3)}%`;
+  if (RATE_SYMBOLS.has(symbol)) return `${price.toFixed(3)}%`;
+  if (INDEX_SYMBOLS.has(symbol)) {
+    return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   if (price >= 1000) return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${price.toFixed(2)}`;
@@ -31,11 +35,7 @@ function formatPrice(price: number, symbol: string): string {
 function ChangeIndicator({ changePct }: { changePct: number }) {
   const positive = changePct >= 0;
   return (
-    <span
-      className={`flex items-center gap-0.5 text-sm font-medium ${
-        positive ? "text-green-400" : "text-red-400"
-      }`}
-    >
+    <span className={`flex items-center gap-0.5 text-sm font-medium ${positive ? "text-green-400" : "text-red-400"}`}>
       {positive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
       {positive ? "+" : ""}
       {changePct.toFixed(2)}%
@@ -44,15 +44,16 @@ function ChangeIndicator({ changePct }: { changePct: number }) {
 }
 
 function QuoteRow({ quote }: { quote: Quote }) {
-  const isRate = quote.symbol === "^TNX" || quote.symbol === "^IRX";
+  const isRate = RATE_SYMBOLS.has(quote.symbol);
+  const isIndex = INDEX_SYMBOLS.has(quote.symbol);
+
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs font-bold text-brand-400">{quote.symbol}</span>
-          {isRate && (
-            <span className="text-xs bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded">RATE</span>
-          )}
+          {isRate && <span className="text-xs bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded">RATE</span>}
+          {isIndex && <span className="text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded">INDEX</span>}
         </div>
         <p className="text-xs text-gray-500 truncate max-w-[180px]">{quote.name}</p>
       </div>
@@ -70,6 +71,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   lithium: "⚡",
   bonds: "📊",
   metals: "🔧",
+  energy: "🛢️",
+  "clean-energy": "☀️",
+  "global-indices": "🌐",
+  "global-etfs": "🗺️",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -78,6 +83,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   lithium: "border-emerald-600/40 bg-emerald-950/20",
   bonds: "border-blue-600/40 bg-blue-950/20",
   metals: "border-orange-600/40 bg-orange-950/20",
+  energy: "border-red-600/40 bg-red-950/20",
+  "clean-energy": "border-green-600/40 bg-green-950/20",
+  "global-indices": "border-purple-600/40 bg-purple-950/20",
+  "global-etfs": "border-indigo-600/40 bg-indigo-950/20",
 };
 
 const CATEGORY_HEADER: Record<string, string> = {
@@ -86,7 +95,32 @@ const CATEGORY_HEADER: Record<string, string> = {
   lithium: "text-emerald-400",
   bonds: "text-blue-400",
   metals: "text-orange-400",
+  energy: "text-red-400",
+  "clean-energy": "text-green-400",
+  "global-indices": "text-purple-400",
+  "global-etfs": "text-indigo-400",
 };
+
+// Energy is a macro signal — flag it visually if moving sharply
+function EnergyAlert({ category }: { category: CommodityCategory }) {
+  if (category.category !== "energy") return null;
+  const wti = category.quotes.find((q) => q.symbol === "CL=F");
+  if (!wti) return null;
+  const pct = wti.changePct;
+  if (Math.abs(pct) < 2) return null;
+
+  const isSpike = pct > 2;
+  return (
+    <div className={`mt-2 mb-1 px-2 py-1.5 rounded text-xs flex items-center gap-1.5 ${
+      isSpike ? "bg-red-900/40 text-red-300" : "bg-green-900/40 text-green-300"
+    }`}>
+      <Flame size={12} />
+      {isSpike
+        ? `WTI +${pct.toFixed(1)}% — APEX flagging inflation pressure in macro score`
+        : `WTI ${pct.toFixed(1)}% — oil easing, consumer/growth tailwind`}
+    </div>
+  );
+}
 
 function CommodityCard({ category }: { category: CommodityCategory }) {
   const icon = CATEGORY_ICONS[category.category] ?? "📈";
@@ -101,6 +135,7 @@ function CommodityCard({ category }: { category: CommodityCategory }) {
           <h3 className={`text-base font-bold ${headerColor}`}>{category.label}</h3>
         </div>
         <p className="text-xs text-gray-400 italic">{category.whyItMatters}</p>
+        <EnergyAlert category={category} />
       </div>
 
       <div>
@@ -135,6 +170,25 @@ function SkeletonCard() {
   );
 }
 
+// Group categories into sections for visual separation
+const SECTION_GROUPS: { label: string; icon: ReactNode; categories: string[] }[] = [
+  {
+    label: "Hard Assets & Rates",
+    icon: <span className="text-yellow-400">🏦</span>,
+    categories: ["gold", "silver", "lithium", "metals", "bonds"],
+  },
+  {
+    label: "Energy",
+    icon: <Flame size={16} className="text-red-400" />,
+    categories: ["energy", "clean-energy"],
+  },
+  {
+    label: "Global Markets",
+    icon: <Globe size={16} className="text-purple-400" />,
+    categories: ["global-indices", "global-etfs"],
+  },
+];
+
 export default function Commodities() {
   const [categories, setCategories] = useState<CommodityCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,20 +216,20 @@ export default function Commodities() {
     setRefreshing(false);
   };
 
+  const getCatData = (catId: string) => categories.find((c) => c.category === catId);
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Gem size={24} className="text-brand-400" />
+          <Globe size={24} className="text-brand-400" />
           <div>
-            <h2 className="text-2xl font-semibold text-white">Commodities</h2>
+            <h2 className="text-2xl font-semibold text-white">Global Markets & Commodities</h2>
             <p className="text-sm text-gray-400">
-              Precious metals, battery metals, and bond yields
+              Metals, energy, bonds, and international markets
               {lastUpdated && (
-                <span className="ml-2 text-gray-600">
-                  — updated {lastUpdated.toLocaleTimeString()}
-                </span>
+                <span className="ml-2 text-gray-600">— updated {lastUpdated.toLocaleTimeString()}</span>
               )}
             </p>
           </div>
@@ -190,20 +244,46 @@ export default function Commodities() {
         </button>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {loading
-          ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-          : categories.map((cat) => <CommodityCard key={cat.category} category={cat} />)}
-      </div>
+      {/* Sectioned grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 9 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : (
+        SECTION_GROUPS.map((section) => {
+          const sectionCats = section.categories
+            .map(getCatData)
+            .filter((c): c is CommodityCategory => c !== undefined);
+
+          return (
+            <div key={section.label}>
+              <div className="flex items-center gap-2 mb-4">
+                {section.icon}
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                  {section.label}
+                </h3>
+                <div className="flex-1 border-t border-gray-800" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {sectionCats.map((cat) => <CommodityCard key={cat.category} category={cat} />)}
+              </div>
+            </div>
+          );
+        })
+      )}
 
       {/* Info footer */}
       {!loading && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-xs text-gray-500">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-xs text-gray-500 space-y-1">
           <p>
-            Prices sourced via Yahoo Finance. Futures symbols (GC=F, SI=F, HG=F) are front-month
-            contracts. Yield symbols (^TNX, ^IRX) represent annualized Treasury yields in percent.
-            Data may be delayed by 15-20 minutes during market hours.
+            Prices sourced via Yahoo Finance (15–20 min delay during market hours).
+            Futures (GC=F, SI=F, CL=F, BZ=F, NG=F, HG=F) are front-month contracts.
+            Yield symbols (^TNX, ^IRX) are annualized Treasury yields in percent.
+          </p>
+          <p>
+            Global indices (^FTSE, ^GDAXI, ^N225, ^HSI) show native points — not USD.
+            International ETFs (EWJ, EEM, FXI, EWZ, EWG) trade in USD on US exchanges.
+            WTI crude (CL=F) price direction feeds directly into APEX macro scoring as an inflation signal.
           </p>
         </div>
       )}

@@ -225,6 +225,37 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 10,
+    description: "Add insider_trades, sec_cik_cache, COT cache, Finnhub/Quiver settings",
+    up: `
+    CREATE TABLE IF NOT EXISTS insider_trades (
+      id TEXT PRIMARY KEY,
+      ticker TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      insider_name TEXT NOT NULL,
+      insider_role TEXT NOT NULL,
+      transaction_type TEXT NOT NULL,
+      shares REAL NOT NULL,
+      price_per_share REAL NOT NULL,
+      total_value REAL NOT NULL,
+      transaction_date TEXT NOT NULL,
+      filing_date TEXT NOT NULL,
+      fetched_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_insider_ticker ON insider_trades(ticker, transaction_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_insider_date ON insider_trades(transaction_date DESC);
+    CREATE TABLE IF NOT EXISTS sec_cik_cache (
+      ticker TEXT PRIMARY KEY,
+      cik TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      cached_at TEXT DEFAULT (datetime('now'))
+    );
+    INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+      ('finnhub_api_key', 'none', 'Finnhub API key for real-time quotes — free at finnhub.io/register'),
+      ('quiver_api_key', 'none', 'Quiver Quantitative API key — free tier at quiverquant.com');
+  `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

@@ -1,8 +1,8 @@
 import { Routes, Route, NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
-  Zap, Landmark, Gem, Rocket, LineChart, Settings2,
-  Newspaper, ShieldCheck, ShieldAlert
+  Zap, Landmark, Globe, Rocket, LineChart, Settings2,
+  Newspaper, ShieldCheck, ShieldAlert, Eye
 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -20,24 +20,26 @@ import RiskManager from "./pages/RiskManager";
 import ApexDashboard from "./pages/ApexDashboard";
 import CommandCenter from "./pages/CommandCenter";
 import TradingControl from "./pages/TradingControl";
+import EliteData from "./pages/EliteData";
 
 const navItems = [
-  { to: "/",           icon: Zap,             label: "Command Center" },
-  { to: "/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/apex",       icon: Zap,             label: "APEX Engine" },
-  { to: "/signals",    icon: Zap,             label: "Signals" },
-  { to: "/intelligence",icon: Newspaper,      label: "Intelligence" },
-  { to: "/risk",       icon: ShieldCheck,     label: "Risk Manager" },
-  { to: "/congress",   icon: Landmark,        label: "Congress Trades" },
-  { to: "/predictions",icon: LineChart,       label: "Predictions" },
-  { to: "/ipo",        icon: Rocket,          label: "IPO Tracker" },
-  { to: "/commodities",icon: Gem,             label: "Commodities" },
-  { to: "/markets",    icon: TrendingUp,      label: "Markets" },
-  { to: "/portfolio",  icon: Briefcase,       label: "Portfolio" },
-  { to: "/watchlist",  icon: Star,            label: "Watchlist" },
-  { to: "/ai-advisor", icon: Bot,             label: "AI Advisor" },
-  { to: "/settings",   icon: Settings2,       label: "Settings" },
-  { to: "/trading",    icon: ShieldAlert,     label: "Auto-Trade" },
+  { to: "/",             icon: Zap,             label: "Command Center" },
+  { to: "/dashboard",    icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/apex",         icon: Zap,             label: "APEX Engine" },
+  { to: "/elite",        icon: Eye,             label: "Elite Intel" },
+  { to: "/signals",      icon: TrendingUp,      label: "Signals" },
+  { to: "/intelligence", icon: Newspaper,       label: "Intelligence" },
+  { to: "/risk",         icon: ShieldCheck,     label: "Risk Manager" },
+  { to: "/congress",     icon: Landmark,        label: "Congress Trades" },
+  { to: "/predictions",  icon: LineChart,       label: "Predictions" },
+  { to: "/ipo",          icon: Rocket,          label: "IPO Tracker" },
+  { to: "/commodities",  icon: Globe,           label: "Global Markets" },
+  { to: "/markets",      icon: TrendingUp,      label: "Markets" },
+  { to: "/portfolio",    icon: Briefcase,       label: "Portfolio" },
+  { to: "/watchlist",    icon: Star,            label: "Watchlist" },
+  { to: "/ai-advisor",   icon: Bot,             label: "AI Advisor" },
+  { to: "/settings",     icon: Settings2,       label: "Settings" },
+  { to: "/trading",      icon: ShieldAlert,     label: "Auto-Trade" },
 ];
 
 export default function App() {
@@ -50,7 +52,7 @@ export default function App() {
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">Self-hosted platform</p>
         </div>
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
@@ -92,6 +94,7 @@ export default function App() {
           <Route path="/risk" element={<RiskManager />} />
           <Route path="/apex" element={<ApexDashboard />} />
           <Route path="/trading" element={<TradingControl />} />
+          <Route path="/elite" element={<EliteData />} />
         </Routes>
       </main>
     </div>

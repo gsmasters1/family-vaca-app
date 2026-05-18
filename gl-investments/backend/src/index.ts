@@ -21,6 +21,8 @@ import riskRoutes from "./routes/risk";
 import apexRoutes from "./routes/apex";
 import decisionsRoutes from "./routes/decisions";
 import tradingRoutes from "./routes/trading";
+import cotRoutes from "./routes/cot";
+import insiderRoutes from "./routes/insider";
 import { startScheduler } from "./services/scheduler";
 
 const app = express();
@@ -45,6 +47,8 @@ app.use("/api/risk", riskRoutes);
 app.use("/api/apex", apexRoutes);
 app.use("/api/decisions", decisionsRoutes);
 app.use("/api/trading", tradingRoutes);
+app.use("/api/cot", cotRoutes);
+app.use("/api/insider", insiderRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 

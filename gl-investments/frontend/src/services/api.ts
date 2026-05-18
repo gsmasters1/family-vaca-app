@@ -150,3 +150,16 @@ export const tradingApi = {
   execute: (symbol: string) => api.post(`/trading/execute/${symbol}`),
   closeAll: () => api.post("/trading/close-all"),
 };
+
+// CFTC Commitment of Traders — commercial hedger vs managed money positioning
+export const cotApi = {
+  getAll: () => api.get("/cot"),
+  getTicker: (ticker: string) => api.get(`/cot/${ticker}`),
+  refresh: () => api.post("/cot/refresh"),
+};
+
+// SEC Form 4 insider trades — C-suite and board open-market transactions
+export const insiderApi = {
+  getLatest: () => api.get("/insider/latest"),
+  getTicker: (ticker: string) => api.get(`/insider/${ticker}`),
+};

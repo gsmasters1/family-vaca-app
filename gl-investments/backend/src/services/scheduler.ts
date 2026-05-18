@@ -62,6 +62,22 @@ export function startScheduler(): void {
   });
   tasks.push(intelTask);
 
+  // COT report refresh: every Friday at 4:30 PM ET (released at 3:30 PM, allow processing time)
+  const cotTask = cron.schedule(
+    "30 16 * * 5",
+    async () => {
+      try {
+        const { fetchCOTReports } = require("./cotService");
+        await fetchCOTReports();
+        console.log("[Scheduler] COT report refreshed");
+      } catch (err) {
+        console.error("[Scheduler] COT refresh failed:", err);
+      }
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(cotTask);
+
   console.log(
     "[Scheduler] Started — APEX scans at :05 and :35 past each hour, 9am-4pm ET"
   );
