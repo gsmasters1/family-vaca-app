@@ -1,10 +1,13 @@
 import { Routes, Route, NavLink } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Star, Bot, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Briefcase, Star, Bot, TrendingUp, Zap, Landmark, Gem } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import Watchlist from "./pages/Watchlist";
 import AIAdvisor from "./pages/AIAdvisor";
 import Markets from "./pages/Markets";
+import SignalDashboard from "./pages/SignalDashboard";
+import CongressTrades from "./pages/CongressTrades";
+import Commodities from "./pages/Commodities";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -12,6 +15,9 @@ const navItems = [
   { to: "/watchlist", icon: Star, label: "Watchlist" },
   { to: "/markets", icon: TrendingUp, label: "Markets" },
   { to: "/ai-advisor", icon: Bot, label: "AI Advisor" },
+  { to: "/signals", icon: Zap, label: "Signals" },
+  { to: "/congress", icon: Landmark, label: "Congress Trades" },
+  { to: "/commodities", icon: Gem, label: "Commodities" },
 ];
 
 export default function App() {
@@ -55,6 +61,9 @@ export default function App() {
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/markets" element={<Markets />} />
           <Route path="/ai-advisor" element={<AIAdvisor />} />
+          <Route path="/signals" element={<SignalDashboard />} />
+          <Route path="/congress" element={<CongressTrades />} />
+          <Route path="/commodities" element={<Commodities />} />
         </Routes>
       </main>
     </div>

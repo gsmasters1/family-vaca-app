@@ -73,3 +73,22 @@ export const aiApi = {
   analyzeSymbol: (symbol: string) =>
     api.get<{ analysis: string }>(`/ai/analyze/${symbol}`),
 };
+
+export const congressApi = {
+  getTrades: (limit = 50, filter?: string) =>
+    api.get(`/congress/trades?limit=${limit}${filter ? `&filter=${filter}` : ""}`),
+  getTradesByTicker: (ticker: string) => api.get(`/congress/trades/${ticker}`),
+  scoreATrade: (tradeId: string) => api.get(`/congress/score/${tradeId}`),
+  getLeaderboard: () => api.get("/congress/leaderboard"),
+  refresh: () => api.post("/congress/refresh"),
+};
+
+export const commoditiesApi = {
+  getAll: () => api.get("/commodities/all"),
+  getCategory: (category: string) => api.get(`/commodities/${category}`),
+};
+
+export const signalsApi = {
+  getTop: (limit = 10) => api.get(`/signals/top?limit=${limit}`),
+  refresh: () => api.get("/signals/refresh"),
+};
