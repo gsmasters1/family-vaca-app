@@ -18,9 +18,11 @@ import Settings from "./pages/Settings";
 import Intelligence from "./pages/Intelligence";
 import RiskManager from "./pages/RiskManager";
 import ApexDashboard from "./pages/ApexDashboard";
+import CommandCenter from "./pages/CommandCenter";
 
 const navItems = [
-  { to: "/",           icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/",           icon: Zap,             label: "Command Center" },
+  { to: "/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
   { to: "/apex",       icon: Zap,             label: "APEX Engine" },
   { to: "/signals",    icon: Zap,             label: "Signals" },
   { to: "/intelligence",icon: Newspaper,      label: "Intelligence" },
@@ -72,7 +74,8 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto bg-gray-950">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<CommandCenter />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/markets" element={<Markets />} />

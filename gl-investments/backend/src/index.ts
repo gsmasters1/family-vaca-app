@@ -14,6 +14,7 @@ import predictionsRoutes from "./routes/predictions";
 import intelligenceRoutes from "./routes/intelligence";
 import riskRoutes from "./routes/risk";
 import apexRoutes from "./routes/apex";
+import decisionsRoutes from "./routes/decisions";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -35,6 +36,7 @@ app.use("/api/predictions", predictionsRoutes);
 app.use("/api/intelligence", intelligenceRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/apex", apexRoutes);
+app.use("/api/decisions", decisionsRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 

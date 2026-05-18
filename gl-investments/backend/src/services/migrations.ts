@@ -162,6 +162,27 @@ const migrations: Migration[] = [
         ('intel_min_trust_score', '40', 'Minimum trust score to display in intelligence feed');
     `,
   },
+  {
+    version: 8,
+    description: "Add APEX decisions table",
+    up: `
+      CREATE TABLE IF NOT EXISTS apex_decisions (
+        id TEXT PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        action TEXT NOT NULL,
+        urgency TEXT NOT NULL,
+        conviction INTEGER DEFAULT 5,
+        apex_score INTEGER DEFAULT 0,
+        rationale TEXT DEFAULT '',
+        execution_json TEXT DEFAULT '{}',
+        exit_conditions_json TEXT DEFAULT '[]',
+        regime TEXT DEFAULT 'BULL',
+        generated_at TEXT DEFAULT (datetime('now')),
+        expires_at TEXT DEFAULT (datetime('now', '+24 hours'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_decisions_action ON apex_decisions(action, conviction DESC);
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {
