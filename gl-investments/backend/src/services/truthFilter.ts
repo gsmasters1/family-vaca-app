@@ -52,9 +52,11 @@ const SOURCE_AUTHORITY: Record<string, number> = {
   "thestreet.com": 20,
   "investopedia.com": 20,
   "morningstar.com": 24,
+  "marketbeat.com": 22,   // analyst consensus, earnings, institutional data
   "zacks.com": 20,
   "seekingalpha.com": 16,
   "fool.com": 16,
+  "minoritymindset.com": 18, // financial literacy, wealth-building fundamentals
   // Tier 4 — community/social (5–15)
   "reddit.com": 12,
   "stocktwits.com": 10,

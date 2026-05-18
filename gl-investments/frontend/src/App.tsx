@@ -17,21 +17,23 @@ import Predictions from "./pages/Predictions";
 import Settings from "./pages/Settings";
 import Intelligence from "./pages/Intelligence";
 import RiskManager from "./pages/RiskManager";
+import ApexDashboard from "./pages/ApexDashboard";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/signals", icon: Zap, label: "Signals" },
-  { to: "/intelligence", icon: Newspaper, label: "Intelligence" },
-  { to: "/risk", icon: ShieldCheck, label: "Risk Manager" },
-  { to: "/congress", icon: Landmark, label: "Congress Trades" },
-  { to: "/predictions", icon: LineChart, label: "Predictions" },
-  { to: "/ipo", icon: Rocket, label: "IPO Tracker" },
-  { to: "/commodities", icon: Gem, label: "Commodities" },
-  { to: "/markets", icon: TrendingUp, label: "Markets" },
-  { to: "/portfolio", icon: Briefcase, label: "Portfolio" },
-  { to: "/watchlist", icon: Star, label: "Watchlist" },
-  { to: "/ai-advisor", icon: Bot, label: "AI Advisor" },
-  { to: "/settings", icon: Settings2, label: "Settings" },
+  { to: "/",           icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/apex",       icon: Zap,             label: "APEX Engine" },
+  { to: "/signals",    icon: Zap,             label: "Signals" },
+  { to: "/intelligence",icon: Newspaper,      label: "Intelligence" },
+  { to: "/risk",       icon: ShieldCheck,     label: "Risk Manager" },
+  { to: "/congress",   icon: Landmark,        label: "Congress Trades" },
+  { to: "/predictions",icon: LineChart,       label: "Predictions" },
+  { to: "/ipo",        icon: Rocket,          label: "IPO Tracker" },
+  { to: "/commodities",icon: Gem,             label: "Commodities" },
+  { to: "/markets",    icon: TrendingUp,      label: "Markets" },
+  { to: "/portfolio",  icon: Briefcase,       label: "Portfolio" },
+  { to: "/watchlist",  icon: Star,            label: "Watchlist" },
+  { to: "/ai-advisor", icon: Bot,             label: "AI Advisor" },
+  { to: "/settings",   icon: Settings2,       label: "Settings" },
 ];
 
 export default function App() {
@@ -83,6 +85,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/intelligence" element={<Intelligence />} />
           <Route path="/risk" element={<RiskManager />} />
+          <Route path="/apex" element={<ApexDashboard />} />
         </Routes>
       </main>
     </div>

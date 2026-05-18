@@ -130,3 +130,11 @@ export const riskApi = {
   scoreSignal: (symbol: string, assetType: string, confidence: number) =>
     api.get(`/risk/signal/${symbol}?assetType=${assetType}&confidence=${confidence}`),
 };
+
+export const apexApi = {
+  score: (symbol: string) => api.get(`/apex/score/${symbol}`),
+  watchlist: () => api.get("/apex/watchlist"),
+  portfolio: () => api.get("/apex/portfolio"),
+  regime: () => api.get("/apex/regime"),
+  top: () => api.get("/apex/top"),
+};

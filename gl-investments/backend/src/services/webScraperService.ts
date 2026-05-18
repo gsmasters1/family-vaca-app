@@ -24,18 +24,21 @@ export interface IntelligenceItem {
 // ─── Curated source registry ──────────────────────────────────────────────
 // Only primary sources + tier-1/2 media. No newsletters, no influencers.
 const RSS_SOURCES = [
-  // Official / regulatory
+  // Official / regulatory (Tier 1)
   { url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&dateb=&owner=include&count=20&output=atom", label: "SEC 8-K", category: "regulatory" },
   { url: "https://www.federalreserve.gov/feeds/press_all.xml", label: "Federal Reserve", category: "macro" },
-  // Wire services
+  // Wire services (Tier 2)
   { url: "https://feeds.reuters.com/reuters/businessNews", label: "Reuters Business", category: "news" },
   { url: "https://feeds.reuters.com/reuters/companyNews", label: "Reuters Companies", category: "news" },
-  // Financial media (tier 2-3 only)
+  { url: "https://feeds.reuters.com/reuters/economicNews", label: "Reuters Economy", category: "macro" },
+  // Established financial media (Tier 2-3)
   { url: "https://feeds.marketwatch.com/marketwatch/topstories/", label: "MarketWatch", category: "news" },
   { url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", label: "WSJ Markets", category: "news" },
   { url: "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml", label: "WSJ Business", category: "news" },
-  // Macro / economy
-  { url: "https://feeds.reuters.com/reuters/economicNews", label: "Reuters Economy", category: "macro" },
+  // MarketBeat — analyst ratings, earnings, institutional data (Tier 3, data-rich)
+  { url: "https://www.marketbeat.com/rss/", label: "MarketBeat", category: "analyst" },
+  // Minority Mindset newsletter feed (financial literacy / wealth-building angle)
+  { url: "https://minoritymindset.com/feed/", label: "Minority Mindset", category: "education" },
 ];
 
 // ─── Fear & Greed Index (CNN Money) ──────────────────────────────────────
