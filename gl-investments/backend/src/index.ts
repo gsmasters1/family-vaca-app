@@ -1,3 +1,8 @@
+// Required env vars:
+// ALPACA_API_KEY, ALPACA_API_SECRET — from alpaca.markets
+// ANTHROPIC_API_KEY — from console.anthropic.com
+// ALPACA_PAPER=true (default) — set to false for live trading
+
 import express from "express";
 import cors from "cors";
 import { initDb } from "./services/database";
@@ -15,6 +20,8 @@ import intelligenceRoutes from "./routes/intelligence";
 import riskRoutes from "./routes/risk";
 import apexRoutes from "./routes/apex";
 import decisionsRoutes from "./routes/decisions";
+import tradingRoutes from "./routes/trading";
+import { startScheduler } from "./services/scheduler";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -37,10 +44,12 @@ app.use("/api/intelligence", intelligenceRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/apex", apexRoutes);
 app.use("/api/decisions", decisionsRoutes);
+app.use("/api/trading", tradingRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 
 initDb();
+startScheduler();
 
 app.listen(PORT, () => {
   console.log(`G&L Investments API running on :${PORT}`);

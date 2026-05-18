@@ -2,7 +2,7 @@ import { Routes, Route, NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
   Zap, Landmark, Gem, Rocket, LineChart, Settings2,
-  Newspaper, ShieldCheck
+  Newspaper, ShieldCheck, ShieldAlert
 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -19,6 +19,7 @@ import Intelligence from "./pages/Intelligence";
 import RiskManager from "./pages/RiskManager";
 import ApexDashboard from "./pages/ApexDashboard";
 import CommandCenter from "./pages/CommandCenter";
+import TradingControl from "./pages/TradingControl";
 
 const navItems = [
   { to: "/",           icon: Zap,             label: "Command Center" },
@@ -36,6 +37,7 @@ const navItems = [
   { to: "/watchlist",  icon: Star,            label: "Watchlist" },
   { to: "/ai-advisor", icon: Bot,             label: "AI Advisor" },
   { to: "/settings",   icon: Settings2,       label: "Settings" },
+  { to: "/trading",    icon: ShieldAlert,     label: "Auto-Trade" },
 ];
 
 export default function App() {
@@ -89,6 +91,7 @@ export default function App() {
           <Route path="/intelligence" element={<Intelligence />} />
           <Route path="/risk" element={<RiskManager />} />
           <Route path="/apex" element={<ApexDashboard />} />
+          <Route path="/trading" element={<TradingControl />} />
         </Routes>
       </main>
     </div>

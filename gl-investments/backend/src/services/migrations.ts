@@ -183,6 +183,48 @@ const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_decisions_action ON apex_decisions(action, conviction DESC);
     `,
   },
+  {
+    version: 9,
+    description: "Add trading settings, trade log, and daily equity tracker",
+    up: `
+      INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+        ('trading_enabled', 'false', 'Master switch — must be explicitly enabled'),
+        ('trading_paper_mode', 'true', 'true = paper trading, false = LIVE real money'),
+        ('trading_min_apex_score', '75', 'Minimum APEX score to auto-execute (0-100)'),
+        ('trading_min_conviction', '8', 'Minimum conviction level to auto-execute (1-10)'),
+        ('trading_max_position_pct', '5', 'Max % of portfolio in any single position'),
+        ('trading_daily_loss_limit_pct', '3', 'Stop all trading if portfolio drops this % in a day'),
+        ('trading_max_positions', '10', 'Maximum simultaneous open positions'),
+        ('trading_require_claude_review', 'true', 'Claude API must approve before execution'),
+        ('trading_kill_switch', 'false', 'Emergency stop — halts all trading immediately');
+
+      CREATE TABLE IF NOT EXISTS trade_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        action TEXT NOT NULL,
+        result TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        apex_score INTEGER DEFAULT 0,
+        conviction INTEGER DEFAULT 0,
+        qty REAL DEFAULT 0,
+        entry_price REAL DEFAULT 0,
+        stop_loss REAL DEFAULT 0,
+        target REAL DEFAULT 0,
+        position_size_pct REAL DEFAULT 0,
+        order_id TEXT DEFAULT '',
+        claude_approved INTEGER DEFAULT 0,
+        claude_reason TEXT DEFAULT '',
+        regime TEXT DEFAULT '',
+        executed_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS daily_equity (
+        date TEXT PRIMARY KEY,
+        starting_equity REAL NOT NULL,
+        recorded_at TEXT DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

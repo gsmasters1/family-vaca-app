@@ -1,0 +1,74 @@
+/**
+ * Scheduler
+ *
+ * Manages cron jobs for APEX scans and daily resets.
+ * All times are Eastern (America/New_York).
+ */
+
+import cron from "node-cron";
+import { runFullScan } from "./apexDecisionEngine";
+import { executeDecision } from "./tradeExecutor";
+import { runDailyReset } from "./tradeExecutor";
+import { getSetting } from "./appConfig";
+
+const tasks: cron.ScheduledTask[] = [];
+
+export function startScheduler(): void {
+  // Market open check + daily reset at 9:30 AM ET
+  const resetTask = cron.schedule(
+    "30 9 * * 1-5",
+    async () => {
+      await runDailyReset();
+      console.log("[Scheduler] Market open — daily reset complete");
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(resetTask);
+
+  // Full APEX scan + auto-execute every 30 minutes during market hours (9:35am - 3:55pm ET)
+  const scanTask = cron.schedule(
+    "5,35 9-15 * * 1-5",
+    async () => {
+      if (getSetting("trading_enabled") !== "true") return;
+      if (getSetting("trading_kill_switch") === "true") return;
+
+      console.log("[Scheduler] Running APEX scan...");
+      try {
+        const decisions = await runFullScan();
+        for (const decision of decisions) {
+          if (decision.action === "BUY" || decision.action === "SELL") {
+            const result = await executeDecision(decision);
+            console.log(
+              `[Scheduler] ${decision.symbol}: ${result.action} — ${result.reason}`
+            );
+          }
+        }
+      } catch (err) {
+        console.error("[Scheduler] APEX scan failed:", err);
+      }
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(scanTask);
+
+  // Intelligence feed refresh every 2 hours
+  const intelTask = cron.schedule("0 */2 * * 1-5", async () => {
+    try {
+      const { refreshIntelligenceFeed } = require("./webScraperService");
+      await refreshIntelligenceFeed().catch(console.error);
+    } catch {
+      // webScraperService may not exist in all deployments — silent fail
+    }
+  });
+  tasks.push(intelTask);
+
+  console.log(
+    "[Scheduler] Started — APEX scans at :05 and :35 past each hour, 9am-4pm ET"
+  );
+}
+
+export function stopScheduler(): void {
+  tasks.forEach((task) => task.stop());
+  tasks.length = 0;
+  console.log("[Scheduler] All tasks stopped");
+}

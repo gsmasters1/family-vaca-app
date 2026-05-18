@@ -138,3 +138,15 @@ export const apexApi = {
   regime: () => api.get("/apex/regime"),
   top: () => api.get("/apex/top"),
 };
+
+export const tradingApi = {
+  getStatus: () => api.get("/trading/status"),
+  kill: () => api.post("/trading/kill"),
+  resume: () => api.post("/trading/resume"),
+  setEnabled: (enabled: boolean) => api.put("/trading/enabled", { enabled }),
+  setMode: (paper: boolean) => api.put("/trading/mode", { paper }),
+  updateSetting: (key: string, value: string) => api.put("/trading/settings", { key, value }),
+  getLog: (limit?: number) => api.get(`/trading/log${limit ? `?limit=${limit}` : ""}`),
+  execute: (symbol: string) => api.post(`/trading/execute/${symbol}`),
+  closeAll: () => api.post("/trading/close-all"),
+};
