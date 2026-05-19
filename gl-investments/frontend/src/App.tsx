@@ -1,8 +1,9 @@
 import { Routes, Route, NavLink } from "react-router-dom";
 import {
-  LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
+  LayoutDashboard, Briefcase, Star, Bot, TrendingUp, TrendingDown,
   Zap, Landmark, Globe, Rocket, LineChart, Settings2,
-  Newspaper, ShieldCheck, ShieldAlert, Eye, BarChart2, Activity
+  Newspaper, ShieldCheck, ShieldAlert, Eye, BarChart2, Activity,
+  Layers, Building2, Wallet, Brain
 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -23,6 +24,11 @@ import TradingControl from "./pages/TradingControl";
 import EliteData from "./pages/EliteData";
 import Backtester from "./pages/Backtester";
 import ShortSqueeze from "./pages/ShortSqueeze";
+import SectorRotation from "./pages/SectorRotation";
+import BondMonitor from "./pages/BondMonitor";
+import HedgeFundTracker from "./pages/HedgeFundTracker";
+import ProfitManager from "./pages/ProfitManager";
+import LearningDashboard from "./pages/LearningDashboard";
 
 const navItems = [
   { to: "/",             icon: Zap,             label: "Command Center" },
@@ -44,6 +50,11 @@ const navItems = [
   { to: "/trading",      icon: ShieldAlert,     label: "Auto-Trade" },
   { to: "/backtester",   icon: BarChart2,        label: "Backtester" },
   { to: "/squeeze",      icon: Activity,         label: "Short Squeeze" },
+  { to: "/sectors",      icon: Layers,           label: "Sector Rotation" },
+  { to: "/bonds",        icon: TrendingDown,     label: "Bond Monitor" },
+  { to: "/hedge-funds",  icon: Building2,        label: "Hedge Funds" },
+  { to: "/profit",       icon: Wallet,           label: "Profit Manager" },
+  { to: "/learning",     icon: Brain,            label: "APEX Learning" },
 ];
 
 export default function App() {
@@ -101,6 +112,11 @@ export default function App() {
           <Route path="/elite" element={<EliteData />} />
           <Route path="/backtester" element={<Backtester />} />
           <Route path="/squeeze" element={<ShortSqueeze />} />
+          <Route path="/sectors" element={<SectorRotation />} />
+          <Route path="/bonds" element={<BondMonitor />} />
+          <Route path="/hedge-funds" element={<HedgeFundTracker />} />
+          <Route path="/profit" element={<ProfitManager />} />
+          <Route path="/learning" element={<LearningDashboard />} />
         </Routes>
       </main>
     </div>

@@ -197,3 +197,19 @@ export const optionsFlowApi = {
 export const alertsApi = {
   testTelegram: () => api.post("/alerts/telegram/test"),
 };
+
+export const sectorsApi = {
+  getRotation: () => api.get("/sectors/rotation"),
+  getReport: () => api.get("/sectors/report"),
+  scan: () => api.post("/sectors/scan"),
+  getHedgeFunds: () => api.get("/sectors/hedge-funds"),
+  refreshHedgeFunds: () => api.post("/sectors/hedge-funds/refresh"),
+  getLearning: () => api.get("/sectors/learning"),
+  getProfitRules: () => api.get("/sectors/profit-rules"),
+  updateProfitRules: (rules: Record<string, unknown>) => api.put("/sectors/profit-rules", rules),
+};
+
+export const bondsApi = {
+  getSnapshot: () => api.get("/bonds"),
+  getMacroScore: () => api.get("/bonds/signal"),
+};

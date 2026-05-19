@@ -298,6 +298,76 @@ const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 13,
+    description: "Add sector intelligence layer: sector_overrides, hedge_fund_holdings, fixed_income_cache, trade_outcomes, signal_weights, profit_reserve",
+    up: `
+      CREATE TABLE IF NOT EXISTS sector_overrides (
+        ticker TEXT PRIMARY KEY,
+        sector TEXT NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS hedge_fund_holdings (
+        id TEXT PRIMARY KEY,
+        fund_name TEXT NOT NULL,
+        ticker TEXT NOT NULL,
+        cusip TEXT,
+        value_usd INTEGER DEFAULT 0,
+        shares INTEGER DEFAULT 0,
+        pct_of_portfolio REAL DEFAULT 0,
+        reported_at TEXT NOT NULL,
+        fetched_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_hf_ticker ON hedge_fund_holdings(ticker);
+      CREATE TABLE IF NOT EXISTS fixed_income_cache (
+        id TEXT PRIMARY KEY DEFAULT 'singleton',
+        data TEXT NOT NULL,
+        cached_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS trade_outcomes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        entry_date TEXT NOT NULL,
+        exit_date TEXT NOT NULL,
+        entry_price REAL NOT NULL,
+        exit_price REAL NOT NULL,
+        return_pct REAL NOT NULL,
+        momentum_score INTEGER DEFAULT 0,
+        technical_score INTEGER DEFAULT 0,
+        congress_score INTEGER DEFAULT 0,
+        macro_score INTEGER DEFAULT 0,
+        value_score INTEGER DEFAULT 0,
+        insider_signal TEXT DEFAULT '',
+        hedge_fund_signal INTEGER DEFAULT 0,
+        short_squeeze_signal TEXT DEFAULT '',
+        recorded_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS signal_weights (
+        id TEXT PRIMARY KEY DEFAULT 'current',
+        momentum INTEGER DEFAULT 25,
+        technical INTEGER DEFAULT 20,
+        congressional INTEGER DEFAULT 20,
+        macro_weight INTEGER DEFAULT 20,
+        value INTEGER DEFAULT 15,
+        computed_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS profit_reserve (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_symbol TEXT NOT NULL,
+        realized_gain REAL NOT NULL,
+        reserved_amount REAL NOT NULL,
+        recorded_at TEXT DEFAULT (datetime('now'))
+      );
+      INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+        ('profit_take_tiers', '[{"gainPct":20,"sellPct":25},{"gainPct":40,"sellPct":25},{"gainPct":60,"sellPct":100}]', 'Take-profit tiers JSON: [{gainPct, sellPct}]'),
+        ('profit_trailing_stop_pct', '8', 'Trailing stop percentage (follows price up, never down)'),
+        ('profit_reserve_pct', '30', 'Percentage of realized gains to move into cash reserve'),
+        ('profit_max_drawdown_halt', '15', 'Halt all trading if portfolio drops this % from peak'),
+        ('profit_double_down_threshold', '-10', 'Allow adding to position if down this % (conviction trades only)'),
+        ('hierarchy_enabled', 'false', 'Use 3-layer sector hierarchy instead of single APEX scan'),
+        ('hedge_fund_tracking_enabled', 'true', 'Track major hedge fund 13F filings');
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

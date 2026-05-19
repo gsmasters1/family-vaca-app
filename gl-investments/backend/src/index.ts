@@ -29,6 +29,8 @@ import equityRoutes from "./routes/equity";
 import shortSqueezeRoutes from "./routes/shortsqueeze";
 import optionsFlowRoutes from "./routes/optionsflow";
 import alertsRoutes from "./routes/alerts";
+import sectorsRoutes from "./routes/sectors";
+import fixedIncomeRoutes from "./routes/fixedIncome";
 import { startScheduler } from "./services/scheduler";
 
 const app = express();
@@ -61,6 +63,8 @@ app.use("/api/equity", equityRoutes);
 app.use("/api/shortsqueeze", shortSqueezeRoutes);
 app.use("/api/optionsflow", optionsFlowRoutes);
 app.use("/api/alerts", alertsRoutes);
+app.use("/api/sectors", sectorsRoutes);
+app.use("/api/bonds", fixedIncomeRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 
