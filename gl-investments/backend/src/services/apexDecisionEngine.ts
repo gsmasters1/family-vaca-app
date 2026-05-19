@@ -18,6 +18,8 @@ import { getDb } from "./database";
 import axios from "axios";
 import { getOllamaConfig } from "./appConfig";
 import { getInsiderSignalFromCache } from "./insiderTradesService";
+import { getBondMacroScore } from "./fixedIncomeService";
+import { getHedgeFundSignal } from "./hedgeFundService";
 
 export type DecisionAction = "BUY" | "SELL" | "HOLD" | "AVOID" | "WATCH";
 export type DecisionUrgency = "ACT NOW" | "THIS WEEK" | "DEVELOPING" | "STANDBY";
@@ -134,11 +136,13 @@ export async function makeDecision(symbol: string): Promise<ApexDecision | null>
   const riskProfile = getSetting("risk_profile") ?? "moderate";
 
   try {
-    const [quote, history, regime, energyChangePct] = await Promise.all([
+    const [quote, history, regime, energyChangePct, bondMacroScore, hedgeFundSignalResult] = await Promise.all([
       getQuote(symbol),
       getHistory(symbol, "1y"),
       detectMarketRegime(),
       getEnergyTrend(),
+      getBondMacroScore().catch(() => 0),
+      getHedgeFundSignal(symbol).catch(() => ({ signal: "NONE" as const })),
     ]);
 
     if (history.length < 20) return null;
@@ -154,6 +158,8 @@ export async function makeDecision(symbol: string): Promise<ApexDecision | null>
       riskProfile,
       energyChangePct,
       insiderSignal,
+      bondMacroScore,
+      hedgeFundSignal: hedgeFundSignalResult.signal,
     });
 
     // Check congressional backing

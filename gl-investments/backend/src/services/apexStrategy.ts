@@ -148,7 +148,8 @@ export function scoreTechnical(
 // ─── Congressional edge scorer ────────────────────────────────────────────
 export function scoreCongressional(
   symbol: string,
-  insiderSignal: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL" = "NEUTRAL"
+  insiderSignal: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL" = "NEUTRAL",
+  hedgeFundSignal: "SMART_MONEY" | "NONE" = "NONE"
 ): {
   score: number;
   notes: string[];
@@ -210,6 +211,12 @@ export function scoreCongressional(
     risks.push(`${sales.cnt} congressional sale(s) in last 60 days — mixed signal`);
   }
 
+  // Hedge fund 13F consensus: 2+ major funds holding = smart money conviction
+  if (hedgeFundSignal === "SMART_MONEY") {
+    score = Math.min(score + 6, WEIGHTS.congressional);
+    notes.push("Smart money consensus — 2+ major hedge funds hold this position (13F data)");
+  }
+
   // Insider signal (Form 4): C-suite spending personal money = aligned interest
   if (insiderSignal === "STRONG_BUY") {
     score = Math.min(score + 8, WEIGHTS.congressional);
@@ -229,7 +236,8 @@ export function scoreCongressional(
 export function scoreMacro(
   regime: MarketRegime,
   fearGreedScore: number,
-  energyChangePct = 0
+  energyChangePct = 0,
+  bondMacroScore = 0   // -10 to +10 from fixedIncomeService
 ): { score: number; notes: string[]; risks: string[] } {
   let score = 0;
   const notes: string[] = [];
@@ -279,6 +287,17 @@ export function scoreMacro(
   } else if (energyChangePct < -4) {
     score += 1;
     notes.push(`WTI crude ${energyChangePct.toFixed(1)}% — demand-side easing, consumer tailwind`);
+  }
+
+  // Bond market signal: yield curve inversion and risk-off flows are leading indicators
+  // bondMacroScore -10 to +10, scaled to ±5 pts
+  const bondAdj = Math.round(bondMacroScore * 0.5);
+  if (bondAdj > 0) {
+    score += bondAdj;
+    notes.push(`Bond market risk-on (score +${bondAdj}) — credit spreads and yield curve supportive`);
+  } else if (bondAdj < 0) {
+    score += bondAdj;
+    risks.push(`Bond market risk-off (score ${bondAdj}) — yield curve or credit spreads flashing caution`);
   }
 
   return { score: Math.max(0, Math.min(score, WEIGHTS.macro)), notes, risks };
@@ -364,13 +383,19 @@ export function computeApexScore(params: {
   riskProfile: string;
   energyChangePct?: number;
   insiderSignal?: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL";
+  bondMacroScore?: number;
+  hedgeFundSignal?: "SMART_MONEY" | "NONE";
 }): ApexScore {
-  const { symbol, price, indicators, regime, fearGreedScore, riskProfile, energyChangePct = 0, insiderSignal = "NEUTRAL" } = params;
+  const {
+    symbol, price, indicators, regime, fearGreedScore, riskProfile,
+    energyChangePct = 0, insiderSignal = "NEUTRAL",
+    bondMacroScore = 0, hedgeFundSignal = "NONE",
+  } = params;
 
   const mom = scoreMomentum(indicators, price);
   const tech = scoreTechnical(indicators, price);
-  const cong = scoreCongressional(symbol, insiderSignal);
-  const macro = scoreMacro(regime, fearGreedScore, energyChangePct);
+  const cong = scoreCongressional(symbol, insiderSignal, hedgeFundSignal);
+  const macro = scoreMacro(regime, fearGreedScore, energyChangePct, bondMacroScore);
   const val = scoreValue(price, indicators);
 
   const total = mom.score + tech.score + cong.score + macro.score + val.score;
