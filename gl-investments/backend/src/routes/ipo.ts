@@ -60,7 +60,7 @@ router.post("/score/:id", async (req, res) => {
   res.json(scored);
 });
 
-router.get("/lockup-expiring", (_req, res) => {
+router.get("/lockup-expiring", (req, res) => {
   const days = parseInt(String(req.query?.within ?? "30"), 10);
   res.json(getLockupExpiringFilings(days));
 });

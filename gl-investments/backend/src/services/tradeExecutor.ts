@@ -312,6 +312,21 @@ export async function executeDecision(decision: ApexDecision): Promise<TradeResu
     `[TradeExecutor] EXECUTED ${decision.action} ${qty} shares of ${decision.symbol} @ $${entryPrice} | Stop: $${decision.execution.stopLoss} | Target: $${decision.execution.target}`
   );
 
+  try {
+    const { alertTradeExecuted } = require("./telegramService");
+    await alertTradeExecuted({
+      symbol: decision.symbol,
+      action: decision.action,
+      qty,
+      price: entryPrice,
+      stopLoss: decision.execution.stopLoss,
+      target: decision.execution.target,
+      apexScore: decision.apexScore,
+      reason: decision.rationale,
+      paper: getSetting("trading_paper_mode") !== "false",
+    });
+  } catch { /* Telegram failure never blocks a trade */ }
+
   return {
     symbol: decision.symbol,
     action: "executed",

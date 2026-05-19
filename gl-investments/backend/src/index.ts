@@ -23,6 +23,12 @@ import decisionsRoutes from "./routes/decisions";
 import tradingRoutes from "./routes/trading";
 import cotRoutes from "./routes/cot";
 import insiderRoutes from "./routes/insider";
+import backtestRoutes from "./routes/backtest";
+import earningsRoutes from "./routes/earnings";
+import equityRoutes from "./routes/equity";
+import shortSqueezeRoutes from "./routes/shortsqueeze";
+import optionsFlowRoutes from "./routes/optionsflow";
+import alertsRoutes from "./routes/alerts";
 import { startScheduler } from "./services/scheduler";
 
 const app = express();
@@ -49,6 +55,12 @@ app.use("/api/decisions", decisionsRoutes);
 app.use("/api/trading", tradingRoutes);
 app.use("/api/cot", cotRoutes);
 app.use("/api/insider", insiderRoutes);
+app.use("/api/backtest", backtestRoutes);
+app.use("/api/earnings", earningsRoutes);
+app.use("/api/equity", equityRoutes);
+app.use("/api/shortsqueeze", shortSqueezeRoutes);
+app.use("/api/optionsflow", optionsFlowRoutes);
+app.use("/api/alerts", alertsRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", version: "3.0.0" }));
 

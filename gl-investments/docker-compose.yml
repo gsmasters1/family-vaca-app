@@ -2,37 +2,88 @@ version: "3.9"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gl-backend
+    restart: unless-stopped
     ports:
       - "3001:3001"
-    volumes:
-      - ./database:/app/database
     environment:
       - NODE_ENV=production
-      - DB_PATH=/app/database/gl_investments.db
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY:-demo}
+      - PORT=3001
+      - ALPACA_PAPER=${ALPACA_PAPER:-true}
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - gl-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
-      - ollama
-    restart: unless-stopped
+      ollama:
+        condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gl-frontend
+    restart: unless-stopped
     ports:
       - "3000:80"
+    networks:
+      - gl-net
     depends_on:
       - backend
-    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
+    container_name: gl-ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    networks:
+      - gl-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+        reservations:
+          memory: 8G
+
+  watchdog:
+    build:
+      context: ./watchdog
+      dockerfile: Dockerfile
+    container_name: gl-watchdog
     restart: unless-stopped
-    # Pull llama3.1:8b on first startup
-    entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull llama3.1:8b && wait"]
+    environment:
+      - BACKEND_URL=http://backend:3001
+      - CHECK_INTERVAL_SECONDS=300
+    env_file:
+      - .env
+    networks:
+      - gl-net
+    depends_on:
+      - backend
+
+networks:
+  gl-net:
+    driver: bridge
 
 volumes:
   ollama_data:

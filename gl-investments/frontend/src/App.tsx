@@ -2,7 +2,7 @@ import { Routes, Route, NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Star, Bot, TrendingUp,
   Zap, Landmark, Globe, Rocket, LineChart, Settings2,
-  Newspaper, ShieldCheck, ShieldAlert, Eye
+  Newspaper, ShieldCheck, ShieldAlert, Eye, BarChart2, Activity
 } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -21,6 +21,8 @@ import ApexDashboard from "./pages/ApexDashboard";
 import CommandCenter from "./pages/CommandCenter";
 import TradingControl from "./pages/TradingControl";
 import EliteData from "./pages/EliteData";
+import Backtester from "./pages/Backtester";
+import ShortSqueeze from "./pages/ShortSqueeze";
 
 const navItems = [
   { to: "/",             icon: Zap,             label: "Command Center" },
@@ -40,6 +42,8 @@ const navItems = [
   { to: "/ai-advisor",   icon: Bot,             label: "AI Advisor" },
   { to: "/settings",     icon: Settings2,       label: "Settings" },
   { to: "/trading",      icon: ShieldAlert,     label: "Auto-Trade" },
+  { to: "/backtester",   icon: BarChart2,        label: "Backtester" },
+  { to: "/squeeze",      icon: Activity,         label: "Short Squeeze" },
 ];
 
 export default function App() {
@@ -95,6 +99,8 @@ export default function App() {
           <Route path="/apex" element={<ApexDashboard />} />
           <Route path="/trading" element={<TradingControl />} />
           <Route path="/elite" element={<EliteData />} />
+          <Route path="/backtester" element={<Backtester />} />
+          <Route path="/squeeze" element={<ShortSqueeze />} />
         </Routes>
       </main>
     </div>

@@ -29,12 +29,23 @@ export function startScheduler(): void {
   const scanTask = cron.schedule(
     "5,35 9-15 * * 1-5",
     async () => {
-      if (getSetting("trading_enabled") !== "true") return;
       if (getSetting("trading_kill_switch") === "true") return;
 
       console.log("[Scheduler] Running APEX scan...");
       try {
         const decisions = await runFullScan();
+
+        // Alert ACT NOW decisions to Telegram regardless of trading enabled state
+        try {
+          const { alertApexDecision } = require("./telegramService");
+          for (const d of decisions) {
+            if (d.urgency === "ACT NOW") {
+              await alertApexDecision(d).catch(() => {});
+            }
+          }
+        } catch { /* non-fatal */ }
+
+        if (getSetting("trading_enabled") !== "true") return;
         for (const decision of decisions) {
           if (decision.action === "BUY" || decision.action === "SELL") {
             const result = await executeDecision(decision);
@@ -50,6 +61,38 @@ export function startScheduler(): void {
     { timezone: "America/New_York" }
   );
   tasks.push(scanTask);
+
+  // Stop-loss monitor: every 5 minutes during market hours
+  const stopLossTask = cron.schedule(
+    "*/5 9-15 * * 1-5",
+    async () => {
+      if (getSetting("trading_kill_switch") === "true") return;
+      if (getSetting("trading_enabled") !== "true") return;
+      try {
+        const { checkStopLosses } = require("./stopLossMonitor");
+        await checkStopLosses();
+      } catch (err) {
+        console.error("[Scheduler] Stop-loss check failed:", err);
+      }
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(stopLossTask);
+
+  // Daily Telegram summary at 4:00 PM ET weekdays
+  const dailySummaryTask = cron.schedule(
+    "0 16 * * 1-5",
+    async () => {
+      try {
+        const { alertDailySummary } = require("./telegramService");
+        await alertDailySummary();
+      } catch (err) {
+        console.error("[Scheduler] Daily summary alert failed:", err);
+      }
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(dailySummaryTask);
 
   // Intelligence feed refresh every 2 hours
   const intelTask = cron.schedule("0 */2 * * 1-5", async () => {

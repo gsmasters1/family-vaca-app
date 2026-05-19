@@ -163,3 +163,37 @@ export const insiderApi = {
   getLatest: () => api.get("/insider/latest"),
   getTicker: (ticker: string) => api.get(`/insider/${ticker}`),
 };
+
+export const backtestApi = {
+  getHistory: () => api.get("/backtest"),
+  run: (params: {
+    symbols?: string[];
+    startDate: string;
+    endDate: string;
+    startingCapital: number;
+    minApexScore: number;
+  }) => api.post("/backtest/run", params),
+};
+
+export const earningsApi = {
+  getWatchlist: () => api.get("/earnings/watchlist"),
+  getTicker: (ticker: string) => api.get(`/earnings/${ticker}`),
+};
+
+export const equityApi = {
+  getPerformance: () => api.get("/equity/performance"),
+};
+
+export const shortSqueezeApi = {
+  getCached: () => api.get("/shortsqueeze"),
+  scan: () => api.post("/shortsqueeze/scan"),
+};
+
+export const optionsFlowApi = {
+  getWatchlist: () => api.get("/optionsflow/watchlist"),
+  getTicker: (ticker: string) => api.get(`/optionsflow/${ticker}`),
+};
+
+export const alertsApi = {
+  testTelegram: () => api.post("/alerts/telegram/test"),
+};

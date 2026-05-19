@@ -256,6 +256,48 @@ const migrations: Migration[] = [
       ('quiver_api_key', 'none', 'Quiver Quantitative API key — free tier at quiverquant.com');
   `,
   },
+  {
+    version: 11,
+    description: "Add Telegram alerts, backtest settings",
+    up: `
+      INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+        ('telegram_bot_token', 'none', 'Telegram bot token — create via @BotFather on Telegram'),
+        ('telegram_chat_id', 'none', 'Your Telegram user/chat ID for trade alerts'),
+        ('telegram_alerts_enabled', 'false', 'Send Telegram alerts for executions and ACT NOW signals'),
+        ('backtest_min_apex_score', '65', 'Min APEX score threshold used in backtests (40-90)');
+    `,
+  },
+  {
+    version: 12,
+    description: "Add short_interest, options_flow_cache, backtest_runs, earnings_calendar tables",
+    up: `
+      CREATE TABLE IF NOT EXISTS short_interest (
+        ticker TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        cached_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS options_flow_cache (
+        ticker TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        cached_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS backtest_runs (
+        id TEXT PRIMARY KEY,
+        symbols TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        initial_capital REAL NOT NULL,
+        min_apex_score INTEGER NOT NULL,
+        results TEXT NOT NULL,
+        ran_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS earnings_calendar (
+        ticker TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        cached_at TEXT DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {
