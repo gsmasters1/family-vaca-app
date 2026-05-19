@@ -149,6 +149,8 @@ export const tradingApi = {
   getLog: (limit?: number) => api.get(`/trading/log${limit ? `?limit=${limit}` : ""}`),
   execute: (symbol: string) => api.post(`/trading/execute/${symbol}`),
   closeAll: () => api.post("/trading/close-all"),
+  getPortfolioLive: () => api.get("/trading/portfolio-live"),
+  syncNow: () => api.post("/trading/sync"),
 };
 
 // CFTC Commitment of Traders — commercial hedger vs managed money positioning

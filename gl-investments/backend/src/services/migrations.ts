@@ -368,6 +368,21 @@ const migrations: Migration[] = [
         ('hedge_fund_tracking_enabled', 'true', 'Track major hedge fund 13F filings');
     `,
   },
+  {
+    version: 14,
+    description: "Small account mode, growth settings, crypto flag",
+    up: `
+      INSERT OR IGNORE INTO app_settings (key, value, description) VALUES
+        ('small_account_mode', 'auto', 'auto = detect by balance (<$2k), true = always notional orders, false = whole shares'),
+        ('min_trade_notional', '10', 'Minimum dollar amount per trade in small account mode'),
+        ('growth_mode', 'false', 'Growth mode: higher conviction threshold, larger positions, fewer trades'),
+        ('growth_min_apex_score', '85', 'Minimum APEX score in growth mode (more selective)'),
+        ('growth_max_position_pct', '25', 'Max position size % in growth mode (20-25% for $300 accounts)'),
+        ('growth_max_positions', '4', 'Max simultaneous positions in growth mode'),
+        ('alpaca_sync_enabled', 'true', 'Sync portfolio positions from Alpaca every 5 min during market hours'),
+        ('crypto_enabled', 'false', 'Include BTC/USD ETH/USD SOL/USD in APEX scan (Alpaca crypto, no PDT rules)');
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

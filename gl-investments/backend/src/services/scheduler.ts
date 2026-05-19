@@ -155,6 +155,22 @@ export function startScheduler(): void {
   );
   tasks.push(bondTask);
 
+  // Alpaca position sync + closed trade detection: every 5 min during market hours
+  const alpacaSyncTask = cron.schedule(
+    "*/5 9-16 * * 1-5",
+    async () => {
+      if (getSetting("alpaca_sync_enabled") === "false") return;
+      try {
+        const { runFullAlpacaSync } = require("./alpacaSyncService");
+        await runFullAlpacaSync();
+      } catch (err) {
+        console.error("[Scheduler] Alpaca sync failed:", err);
+      }
+    },
+    { timezone: "America/New_York" }
+  );
+  tasks.push(alpacaSyncTask);
+
   // COT report refresh: every Friday at 4:30 PM ET (released at 3:30 PM, allow processing time)
   const cotTask = cron.schedule(
     "30 16 * * 5",

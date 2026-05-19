@@ -122,4 +122,26 @@ router.post("/close-all", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Live portfolio direct from Alpaca (not DB)
+router.get("/portfolio-live", async (req, res) => {
+  try {
+    const { getAlpacaPortfolioSummary } = require("../services/alpacaSyncService");
+    const summary = await getAlpacaPortfolioSummary();
+    res.json(summary);
+  } catch (err) {
+    res.status(503).json({ error: "Alpaca not connected", detail: String(err) });
+  }
+});
+
+// Manual sync trigger
+router.post("/sync", async (req, res) => {
+  try {
+    const { runFullAlpacaSync } = require("../services/alpacaSyncService");
+    await runFullAlpacaSync();
+    res.json({ ok: true, synced: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: "Sync failed", detail: String(err) });
+  }
+});
+
 export default router;

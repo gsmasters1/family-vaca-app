@@ -143,7 +143,28 @@ const SECTOR_BENCHMARKS: Record<GICSSector, SectorBenchmarks> = {
 
 // 200+ well-known S&P 500 components mapped to GICS sector
 const TICKER_SECTOR_MAP: Record<string, GICSSector> = {
+  // Thematic ETFs — AI / Robotics
+  "BOTZ": "Information Technology",   // Global X Robotics & AI
+  "ROBO": "Information Technology",   // Robo Global Robotics & Automation
+  "SOXX": "Information Technology",   // iShares PHLX Semiconductor
+  "CIBR": "Information Technology",   // First Trust Cybersecurity
+
+  // Thematic ETFs — Nuclear / Energy
+  "NUKZ": "Energy",                   // Range Nuclear Renaissance
+  "NLR":  "Energy",                   // VanEck Uranium & Nuclear
+
+  // Thematic ETFs — Materials / Industrial
+  "COPX": "Materials",                // Global X Copper Miners
+  "LIN":  "Materials",                // Linde PLC (industrial gases)
+  "APD":  "Materials",                // Air Products & Chemicals
+
+  // Broad Emerging Markets
+  "VWO":  "Information Technology",   // Vanguard EM (classified IT due to Taiwan/chip weight)
+  "AVEM": "Information Technology",   // Avantis Emerging Markets Equity
+  "VEXC": "Information Technology",   // Vanguard FTSE EM (verify ticker)
+
   // Energy
+  "XLE": "Energy",
   "XOM": "Energy",
   "CVX": "Energy",
   "COP": "Energy",
@@ -166,8 +187,6 @@ const TICKER_SECTOR_MAP: Record<string, GICSSector> = {
   "KMI": "Energy",
 
   // Materials
-  "LIN": "Materials",
-  "APD": "Materials",
   "ECL": "Materials",
   "SHW": "Materials",
   "FCX": "Materials",

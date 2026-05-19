@@ -11,6 +11,8 @@ import {
   getAccount,
   getPositions,
   placeBracketOrder,
+  placeNotionalOrder,
+  placeStopLimitOrder,
   isMarketOpen,
   AlpacaOrder,
 } from "./alpacaService";
@@ -213,17 +215,38 @@ export async function executeDecision(decision: ApexDecision): Promise<TradeResu
     return skipped(decision, `Position already exists for ${decision.symbol} (qty: ${existingPosition.qty})`);
   }
 
-  // 11. Calculate position size
-  const maxPositionPct = parseFloat(getSetting("trading_max_position_pct") ?? "5");
+  // 11. Calculate position size — small account uses notional (fractional shares)
+  const smallAccountMode =
+    getSetting("small_account_mode") === "true" || portfolioValue < 2000;
+  const growthMode = getSetting("growth_mode") === "true";
+
+  const defaultMaxPct = smallAccountMode || growthMode ? "25" : "5";
+  const maxPositionPct = parseFloat(getSetting("trading_max_position_pct") ?? defaultMaxPct);
   const positionSizePct = Math.min(decision.execution.positionSizePct, maxPositionPct);
   const entryPrice = decision.execution.entryPrice;
-  const qty = Math.floor((portfolioValue * positionSizePct / 100) / entryPrice);
 
-  if (qty <= 0) {
-    return blocked(
-      decision,
-      `Calculated qty is 0 — position size ${positionSizePct}% of $${portfolioValue} at $${entryPrice}/share is too small`
-    );
+  let qty = 0;
+  let notional = 0;
+
+  if (smallAccountMode) {
+    notional = Math.round((portfolioValue * positionSizePct / 100) * 100) / 100;
+    const minNotional = parseFloat(getSetting("min_trade_notional") ?? "10");
+    if (notional < minNotional) {
+      return blocked(decision, `Notional $${notional.toFixed(2)} below minimum $${minNotional}`);
+    }
+  } else {
+    qty = Math.floor((portfolioValue * positionSizePct / 100) / entryPrice);
+    if (qty <= 0) {
+      return blocked(
+        decision,
+        `Qty is 0 at $${entryPrice}/share — account < $2,000 should enable small_account_mode`
+      );
+    }
+  }
+
+  // PDT warning (< $25k accounts) — we swing trade so this rarely triggers
+  if (portfolioValue < 25000 && account.daytrade_count >= 3) {
+    console.warn(`[TradeExecutor] PDT warning: ${account.daytrade_count}/3 day trades used. Swing trades unaffected.`);
   }
 
   // 12. Claude review (if required)
@@ -256,17 +279,27 @@ export async function executeDecision(decision: ApexDecision): Promise<TradeResu
     }
   }
 
-  // 14. Place bracket order
+  // 14. Place order — notional market for small accounts, bracket for standard
   let order: AlpacaOrder;
+  const effectiveQty = smallAccountMode ? notional / entryPrice : qty;
   try {
-    order = await placeBracketOrder({
-      symbol: decision.symbol,
-      qty,
-      side: decision.action === "BUY" ? "buy" : "sell",
-      limitPrice: decision.execution.entryPrice,
-      stopLossPrice: decision.execution.stopLoss,
-      takeProfitPrice: decision.execution.target,
-    });
+    if (smallAccountMode) {
+      order = await placeNotionalOrder(decision.symbol, notional, "buy");
+      // Submit GTC stop-limit immediately after entry (bracket not available for fractional)
+      const estimatedQty = (notional / entryPrice).toFixed(6);
+      const stopLimit = Math.round(decision.execution.stopLoss * 0.995 * 100) / 100;
+      placeStopLimitOrder(decision.symbol, estimatedQty, decision.execution.stopLoss, stopLimit)
+        .catch(e => console.warn(`[TradeExecutor] Stop-limit failed for ${decision.symbol}: ${e}`));
+    } else {
+      order = await placeBracketOrder({
+        symbol: decision.symbol,
+        qty,
+        side: decision.action === "BUY" ? "buy" : "sell",
+        limitPrice: entryPrice,
+        stopLossPrice: decision.execution.stopLoss,
+        takeProfitPrice: decision.execution.target,
+      });
+    }
   } catch (err) {
     const errorMsg = `Order placement failed: ${err instanceof Error ? err.message : String(err)}`;
     logTrade({
@@ -276,8 +309,8 @@ export async function executeDecision(decision: ApexDecision): Promise<TradeResu
       reason: errorMsg,
       apexScore: decision.apexScore,
       conviction: decision.conviction,
-      qty,
-      entryPrice: decision.execution.entryPrice,
+      qty: effectiveQty,
+      entryPrice,
       stopLoss: decision.execution.stopLoss,
       target: decision.execution.target,
       positionSizePct,
@@ -294,10 +327,10 @@ export async function executeDecision(decision: ApexDecision): Promise<TradeResu
     symbol: decision.symbol,
     action: decision.action,
     result: "executed",
-    reason: `Order placed: ${order.id}`,
+    reason: smallAccountMode ? `Notional $${notional} order: ${order.id}` : `Bracket order: ${order.id}`,
     apexScore: decision.apexScore,
     conviction: decision.conviction,
-    qty,
+    qty: effectiveQty,
     entryPrice: decision.execution.entryPrice,
     stopLoss: decision.execution.stopLoss,
     target: decision.execution.target,

@@ -52,6 +52,9 @@ export interface AlpacaOrder {
   submitted_at: string;
   limit_price: string | null;
   stop_price: string | null;
+  notional: string | null;
+  filled_qty: string | null;
+  filled_at: string | null;
 }
 
 export interface BracketOrderParams {
@@ -232,4 +235,84 @@ export async function getMarketClock(): Promise<{
     next_open: data.next_open,
     next_close: data.next_close,
   };
+}
+
+export async function placeNotionalOrder(
+  symbol: string,
+  notional: number,
+  side: "buy" | "sell"
+): Promise<AlpacaOrder> {
+  const body = {
+    symbol,
+    notional: notional.toFixed(2),
+    side,
+    type: "market",
+    time_in_force: "day",
+  };
+
+  const res = await alpacaFetch("/v2/orders", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Alpaca placeNotionalOrder failed (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<AlpacaOrder>;
+}
+
+export async function placeStopLimitOrder(
+  symbol: string,
+  qty: string,
+  stopPrice: number,
+  limitPrice: number
+): Promise<AlpacaOrder> {
+  const body = {
+    symbol,
+    qty,
+    side: "sell",
+    type: "stop_limit",
+    time_in_force: "gtc",
+    stop_price: stopPrice.toFixed(2),
+    limit_price: limitPrice.toFixed(2),
+  };
+
+  const res = await alpacaFetch("/v2/orders", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Alpaca placeStopLimitOrder failed (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<AlpacaOrder>;
+}
+
+export async function getFilledOrders(since?: string): Promise<AlpacaOrder[]> {
+  const afterTs =
+    since ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const params = new URLSearchParams({
+    status: "closed",
+    after: afterTs,
+    direction: "desc",
+    limit: "50",
+  });
+
+  const res = await alpacaFetch(`/v2/orders?${params.toString()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Alpaca getFilledOrders failed (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<AlpacaOrder[]>;
+}
+
+export async function getOrder(orderId: string): Promise<AlpacaOrder> {
+  const res = await alpacaFetch(`/v2/orders/${encodeURIComponent(orderId)}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Alpaca getOrder(${orderId}) failed (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<AlpacaOrder>;
 }
