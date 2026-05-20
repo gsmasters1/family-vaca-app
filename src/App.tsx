@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Map as MapIcon, 
-  CloudSun, 
-  Utensils, 
-  Compass, 
-  Bell, 
-  Navigation, 
-  Settings, 
+import {
+  Map as MapIcon,
+  CloudSun,
+  Utensils,
+  Compass,
+  Bell,
+  Navigation,
+  Settings,
   LogOut,
   Info,
   AlertTriangle,
@@ -18,8 +18,10 @@ import {
   Activity,
   History,
   UserPlus,
-  X
+  X,
+  TrendingUp,
 } from 'lucide-react';
+import TradingDashboard from './components/TradingDashboard';
 import { auth, db } from './lib/firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { useFamilyLocations, UserLocation, TrailPoint } from './hooks/useFamilyLocations';
@@ -68,7 +70,7 @@ function BreadcrumbTrail({ path, color }: { path: TrailPoint[], color: string })
 
 export default function App() {
   const { family, currentUser, mileage } = useFamilyLocations();
-  const [activeTab, setActiveTab] = useState<'map' | 'weather' | 'disney' | 'suggestions' | 'traffic' | 'allowlist' | 'yosemite'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'weather' | 'disney' | 'suggestions' | 'traffic' | 'allowlist' | 'yosemite' | 'trading'>('map');
   const [selectedUser, setSelectedUser] = useState<UserLocation | null>(null);
   const [isAlertsEnabled, setIsAlertsEnabled] = useState(true);
   const [showTrails, setShowTrails] = useState(true);
@@ -625,6 +627,18 @@ export default function App() {
             </motion.div>
           )}
 
+          {activeTab === 'trading' && (
+            <motion.div
+              key="trading"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="h-full overflow-hidden"
+            >
+              <TradingDashboard />
+            </motion.div>
+          )}
+
           {activeTab === 'allowlist' && (
             <motion.div 
               key="allowlist"
@@ -800,7 +814,7 @@ export default function App() {
       </main>
 
       {/* Nav Bar */}
-      <nav className="px-4 pb-8 pt-4 bg-slate-950 border-t border-slate-900 grid grid-cols-5 gap-1 z-50">
+      <nav className="px-4 pb-8 pt-4 bg-slate-950 border-t border-slate-900 grid grid-cols-7 gap-1 z-50">
         <NavButton 
           active={activeTab === 'map'} 
           onClick={() => setActiveTab('map')}
@@ -831,11 +845,17 @@ export default function App() {
           icon={<Utensils className="w-5 h-5" />}
           label="Eats"
         />
-        <NavButton 
-          active={activeTab === 'traffic'} 
+        <NavButton
+          active={activeTab === 'traffic'}
           onClick={() => setActiveTab('traffic')}
           icon={<Car className="w-5 h-5" />}
           label="Drive"
+        />
+        <NavButton
+          active={activeTab === 'trading'}
+          onClick={() => setActiveTab('trading')}
+          icon={<TrendingUp className="w-5 h-5" />}
+          label="Trade"
         />
       </nav>
 
