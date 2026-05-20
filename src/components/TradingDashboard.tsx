@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  TrendingUp, TrendingDown, Minus, DollarSign, Activity,
+  TrendingUp, TrendingDown, Minus, Activity,
   AlertTriangle, ChevronDown, ChevronUp, RefreshCw,
-  Plus, X, Zap, Settings, Clock, Shield, ShieldAlert, Gauge,
+  Plus, X, Zap, Settings, Clock, Shield, ShieldAlert, Gauge, Search, BarChart2,
 } from 'lucide-react';
 import { useTradingEngine } from '../hooks/useTradingEngine';
 import type { OrderRequest } from '../services/alpaca';
@@ -283,6 +283,158 @@ export default function TradingDashboard() {
             </p>
           </div>
         )}
+
+        {/* Quantitative Scanner */}
+        <Collapsible title={`Quant Scanner — S&P 100 Universe`} icon={<Search className="w-4 h-4" />} defaultOpen>
+          <div className="space-y-3">
+            {/* Controls row */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => engine.runScanner(false)}
+                disabled={state.scanner.isRunning}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all',
+                  state.scanner.isRunning
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                )}
+              >
+                <Search className="w-3.5 h-3.5" />
+                {state.scanner.isRunning ? 'Scanning...' : 'Scan Now'}
+              </button>
+              <button
+                onClick={() => engine.runScanner(true)}
+                disabled={state.scanner.isRunning}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all disabled:opacity-40"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Force Refresh
+              </button>
+              {state.scanner.result && (
+                <span className="text-[10px] text-slate-500 ml-auto">
+                  {state.scanner.result.scannedCount} symbols · {(state.scanner.result.duration / 1000).toFixed(1)}s
+                </span>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            {state.scanner.isRunning && (
+              <div className="space-y-1">
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-emerald-500 rounded-full"
+                    animate={{ width: `${state.scanner.progress.total > 0 ? (state.scanner.progress.done / state.scanner.progress.total) * 100 : 0}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Fetching bars {state.scanner.progress.done}/{state.scanner.progress.total}...
+                </p>
+              </div>
+            )}
+
+            {/* Scanner error */}
+            {state.scanner.error && (
+              <p className="text-xs text-red-400 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> {state.scanner.error}
+              </p>
+            )}
+
+            {/* Macro gate status for scanner */}
+            {state.macro?.zone === 'DEFENSIVE' && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-300">
+                Scanner disabled in DEFENSIVE macro regime — no new longs.
+              </div>
+            )}
+
+            {/* Candidates table */}
+            {state.scanner.result && state.scanner.result.candidates.length > 0 ? (
+              <div className="overflow-x-auto -mx-1">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-slate-500 uppercase tracking-wider border-b border-slate-800">
+                      <th className="px-1 py-2 text-left w-6">#</th>
+                      <th className="px-2 py-2 text-left">Symbol</th>
+                      <th className="px-2 py-2 text-right">Score</th>
+                      <th className="px-1 py-2 text-right">MC</th>
+                      <th className="px-1 py-2 text-right">Vol</th>
+                      <th className="px-1 py-2 text-right">RS</th>
+                      <th className="px-1 py-2 text-right">52W</th>
+                      <th className="px-1 py-2 text-right">Accel</th>
+                      <th className="px-2 py-2 text-right">Day%</th>
+                      <th className="px-1 py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.scanner.result.candidates.map((c) => {
+                      const inWatchlist = state.watchlist.includes(c.symbol);
+                      return (
+                        <tr key={c.symbol} className="border-t border-slate-800/40 hover:bg-slate-800/20 transition-colors">
+                          <td className="px-1 py-2 text-slate-600 font-mono">{c.rank}</td>
+                          <td className="px-2 py-2 font-mono font-bold">{c.symbol}</td>
+                          <td className="px-2 py-2 text-right">
+                            <span className={cn(
+                              'font-bold',
+                              c.compositeScore >= 80 ? 'text-emerald-400' :
+                              c.compositeScore >= 70 ? 'text-yellow-400' : 'text-slate-300'
+                            )}>
+                              {c.compositeScore.toFixed(0)}
+                            </span>
+                          </td>
+                          <td className="px-1 py-2 text-right text-slate-400 font-mono text-[10px]">{c.factors.momentumCrossover.toFixed(0)}</td>
+                          <td className="px-1 py-2 text-right text-slate-400 font-mono text-[10px]">{c.factors.volumeSurge.toFixed(0)}</td>
+                          <td className="px-1 py-2 text-right text-slate-400 font-mono text-[10px]">{c.factors.relativeStrength.toFixed(0)}</td>
+                          <td className="px-1 py-2 text-right text-slate-400 font-mono text-[10px]">{c.factors.weekHighProximity.toFixed(0)}</td>
+                          <td className="px-1 py-2 text-right text-slate-400 font-mono text-[10px]">{c.factors.priceAcceleration.toFixed(0)}</td>
+                          <td className={cn('px-2 py-2 text-right font-mono text-[10px]', c.dayChangePct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                            {c.dayChangePct >= 0 ? '+' : ''}{c.dayChangePct.toFixed(1)}%
+                          </td>
+                          <td className="px-1 py-2">
+                            <button
+                              onClick={() => engine.addScannerCandidateToWatchlist(c.symbol)}
+                              disabled={inWatchlist}
+                              className={cn(
+                                'w-6 h-6 rounded-lg flex items-center justify-center transition-colors',
+                                inWatchlist
+                                  ? 'bg-slate-800 text-slate-600 cursor-default'
+                                  : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                              )}
+                              title={inWatchlist ? 'Already in watchlist' : 'Add to watchlist'}
+                            >
+                              {inWatchlist ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="text-[9px] text-slate-600 mt-2 px-1">
+                  MC=Momentum Crossover · Vol=Volume Surge · RS=Relative Strength vs SPY · 52W=52-Week High Proximity · Accel=Price Acceleration
+                </p>
+              </div>
+            ) : state.scanner.result && !state.scanner.isRunning ? (
+              <div className="p-4 text-center text-slate-600 text-xs border border-dashed border-slate-800 rounded-xl">
+                {state.macro?.zone === 'REDUCED'
+                  ? 'No candidates above threshold 75 in REDUCED macro regime'
+                  : 'No candidates found above threshold 60 — run a fresh scan'}
+              </div>
+            ) : !state.scanner.result && !state.scanner.isRunning ? (
+              <div className="p-4 text-center text-slate-600 text-xs border border-dashed border-slate-800 rounded-xl">
+                <BarChart2 className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                Press "Scan Now" to rank 95 S&P 100 stocks across 5 quant factors
+              </div>
+            ) : null}
+
+            {/* Last scan metadata */}
+            {state.scanner.result && (
+              <div className="flex justify-between text-[10px] text-slate-600 pt-1 border-t border-slate-800">
+                <span>Scanned {new Date(state.scanner.result.asOf).toLocaleString()}</span>
+                <span>Threshold: {state.scanner.result.threshold === Infinity ? 'N/A' : state.scanner.result.threshold.toFixed(0)}</span>
+              </div>
+            )}
+          </div>
+        </Collapsible>
 
         {/* Paper / Live mode toggle */}
         <div className="flex items-center justify-between p-3 bg-slate-900/50 border border-slate-800 rounded-xl">

@@ -124,6 +124,7 @@ export interface AlpacaClient {
   cancelAllOrders(): Promise<void>;
   closePosition(symbol: string): Promise<AlpacaOrder>;
   getBars(symbol: string, timeframe: '1Min' | '5Min' | '15Min' | '1Hour' | '1Day', limit: number): Promise<AlpacaBar[]>;
+  getMultiBars(symbols: string[], timeframe: '1Min' | '5Min' | '15Min' | '1Hour' | '1Day', limit: number): Promise<Record<string, AlpacaBar[]>>;
   getLatestQuote(symbol: string): Promise<AlpacaQuote>;
   getMultiQuotes(symbols: string[]): Promise<Record<string, AlpacaQuote>>;
   isMarketOpen(): Promise<boolean>;
@@ -363,6 +364,43 @@ export function createAlpacaClient(keyId: string, secretKey: string, paper = tru
     return result;
   }
 
+  async function getMultiBars(
+    symbols: string[],
+    timeframe: '1Min' | '5Min' | '15Min' | '1Hour' | '1Day',
+    limit: number
+  ): Promise<Record<string, AlpacaBar[]>> {
+    const stocks = symbols.filter((s) => !isCryptoSymbol(s));
+    const result: Record<string, AlpacaBar[]> = {};
+    const BATCH = 20;
+
+    for (let i = 0; i < stocks.length; i += BATCH) {
+      const batch = stocks.slice(i, i + BATCH);
+      try {
+        const raw = await data<{ bars: Record<string, Record<string, unknown>[]> }>(
+          `/v2/stocks/bars?symbols=${batch.join(',')}&timeframe=${timeframe}&limit=${limit}&adjustment=raw`
+        );
+        for (const sym of batch) {
+          const bars = (raw.bars?.[sym] || []).map((b) => ({
+            t: b.t as string,
+            o: b.o as number,
+            h: b.h as number,
+            l: b.l as number,
+            c: b.c as number,
+            v: b.v as number,
+          }));
+          if (bars.length > 0) result[sym] = bars;
+        }
+      } catch {
+        // skip failed batch — individual symbol failures shouldn't stop the scan
+      }
+      if (i + BATCH < stocks.length) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+
+    return result;
+  }
+
   async function isMarketOpen(): Promise<boolean> {
     try {
       const clock = await trade<AlpacaClock>('/v2/clock');
@@ -381,6 +419,7 @@ export function createAlpacaClient(keyId: string, secretKey: string, paper = tru
     cancelAllOrders,
     closePosition,
     getBars,
+    getMultiBars,
     getLatestQuote,
     getMultiQuotes,
     isMarketOpen,

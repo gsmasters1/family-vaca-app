@@ -19,6 +19,8 @@ import {
 import type { CircuitBreakerSettings, CircuitBreakerState } from '../services/circuitBreaker';
 import { evaluateMacroGate } from '../services/macroGate';
 import type { MacroResult } from '../services/macroGate';
+import { runQuantScanner } from '../services/scanner';
+import type { ScanResult } from '../services/scanner';
 
 export const DEFAULT_WATCHLIST = [
   'SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA',
@@ -32,6 +34,13 @@ export interface WatchlistEntry {
   signalAge: Date | null;
 }
 
+export interface ScannerState {
+  result: ScanResult | null;
+  isRunning: boolean;
+  progress: { done: number; total: number };
+  error: string | null;
+}
+
 export interface TradingState {
   account: AlpacaAccount | null;
   positions: AlpacaPosition[];
@@ -42,6 +51,7 @@ export interface TradingState {
   breakerSettings: CircuitBreakerSettings;
   breakerState: CircuitBreakerState;
   macro: MacroResult | null;
+  scanner: ScannerState;
   autoTrading: boolean;
   paperMode: boolean;
   isMarketOpen: boolean;
@@ -62,6 +72,8 @@ export interface TradingEngine {
   updateBreakerSettings(s: Partial<CircuitBreakerSettings>): void;
   resetCircuitBreaker(): void;
   refreshMacroGate(): Promise<void>;
+  runScanner(forceRefresh?: boolean): Promise<void>;
+  addScannerCandidateToWatchlist(symbol: string): void;
   refreshData(): Promise<void>;
   refreshSignal(symbol: string): Promise<void>;
   addToWatchlist(symbol: string): void;
@@ -82,6 +94,7 @@ export function useTradingEngine(): TradingEngine {
     breakerSettings: { ...DEFAULT_BREAKER_SETTINGS },
     breakerState: loadBreakerState(),
     macro: null,
+    scanner: { result: null, isRunning: false, progress: { done: 0, total: 0 }, error: null },
     autoTrading: false,
     paperMode: true,
     isMarketOpen: false,
@@ -232,6 +245,48 @@ export function useTradingEngine(): TradingEngine {
       // silent — keep previous macro state
     }
   }, [getClient]);
+
+  const runScanner = useCallback(async (forceRefresh = false) => {
+    const client = getClient();
+    if (!KEY_ID || !SECRET_KEY) return;
+
+    setState((prev) => ({
+      ...prev,
+      scanner: { ...prev.scanner, isRunning: true, error: null, progress: { done: 0, total: 95 } },
+    }));
+
+    try {
+      const zone = state.macro?.zone ?? 'FULL_DEPLOY';
+      const result = await runQuantScanner(client, zone, {
+        forceRefresh,
+        useCache: !forceRefresh,
+        topN: 20,
+        onProgress: (done, total) => {
+          setState((prev) => ({
+            ...prev,
+            scanner: { ...prev.scanner, progress: { done, total } },
+          }));
+        },
+      });
+
+      logAutoTrade(`Scanner: ${result.scannedCount} symbols scanned, ${result.candidates.length} candidates (threshold ${result.threshold.toFixed(0)})`);
+
+      setState((prev) => ({
+        ...prev,
+        scanner: { result, isRunning: false, progress: { done: result.scannedCount, total: result.scannedCount }, error: null },
+      }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        scanner: { ...prev.scanner, isRunning: false, error: err instanceof Error ? err.message : 'Scanner failed' },
+      }));
+    }
+  }, [getClient, state.macro?.zone]);
+
+  const addScannerCandidateToWatchlist = (symbol: string) => {
+    addToWatchlist(symbol);
+    logAutoTrade(`Added scanner candidate ${symbol} to watchlist`);
+  };
 
   // Auto-trading loop
   const runAutoTrade = useCallback(async () => {
@@ -433,6 +488,8 @@ export function useTradingEngine(): TradingEngine {
     updateBreakerSettings,
     resetCircuitBreaker,
     refreshMacroGate,
+    runScanner,
+    addScannerCandidateToWatchlist,
     refreshData,
     refreshSignal,
     addToWatchlist,
