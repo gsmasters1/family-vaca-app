@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   TrendingUp, TrendingDown, Minus, DollarSign, Activity,
   AlertTriangle, ChevronDown, ChevronUp, RefreshCw,
-  Plus, X, Zap, Settings, Clock, Shield,
+  Plus, X, Zap, Settings, Clock, Shield, ShieldAlert, Gauge,
 } from 'lucide-react';
 import { useTradingEngine } from '../hooks/useTradingEngine';
 import type { OrderRequest } from '../services/alpaca';
@@ -189,6 +189,98 @@ export default function TradingDashboard() {
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2 text-sm text-red-300">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{state.error}</span>
+          </div>
+        )}
+
+        {/* Circuit Breaker Banner — prominent when tripped */}
+        {state.breakerState.tripped && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 bg-red-500/15 border-2 border-red-500/40 rounded-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="w-6 h-6 text-red-400 shrink-0 animate-pulse" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-red-300 text-sm uppercase tracking-wider">Circuit Breaker Tripped</p>
+                <p className="text-xs text-red-200 mt-1">{state.breakerState.reason}</p>
+                {state.breakerState.trippedAt && (
+                  <p className="text-[10px] text-red-300/60 mt-1">
+                    Tripped at {new Date(state.breakerState.trippedAt).toLocaleString()}
+                  </p>
+                )}
+                <p className="text-[10px] text-red-200/80 mt-2">
+                  Auto-trading is halted. Existing positions can still be managed manually.
+                </p>
+              </div>
+              <button
+                onClick={engine.resetCircuitBreaker}
+                className="shrink-0 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Macro Gate Card */}
+        {state.macro && (
+          <div className={cn(
+            'rounded-2xl border p-4 transition-colors',
+            state.macro.zone === 'FULL_DEPLOY' ? 'bg-emerald-500/10 border-emerald-500/30' :
+            state.macro.zone === 'REDUCED' ? 'bg-yellow-500/10 border-yellow-500/30' :
+            'bg-red-500/10 border-red-500/30'
+          )}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Gauge className={cn(
+                  'w-5 h-5',
+                  state.macro.zone === 'FULL_DEPLOY' ? 'text-emerald-400' :
+                  state.macro.zone === 'REDUCED' ? 'text-yellow-400' :
+                  'text-red-400'
+                )} />
+                <div>
+                  <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Macro Regime</p>
+                  <p className={cn(
+                    'text-lg font-bold leading-none',
+                    state.macro.zone === 'FULL_DEPLOY' ? 'text-emerald-400' :
+                    state.macro.zone === 'REDUCED' ? 'text-yellow-400' :
+                    'text-red-400'
+                  )}>
+                    {state.macro.zone.replace('_', ' ')}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Score</p>
+                <p className="text-2xl font-bold leading-none">{state.macro.score.toFixed(0)}</p>
+              </div>
+              <button
+                onClick={engine.refreshMacroGate}
+                className="w-7 h-7 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">{state.macro.summary}</p>
+            <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-700/50">
+              <div className="text-center">
+                <p className="text-[9px] uppercase text-slate-500 font-black tracking-widest">Trend</p>
+                <p className="font-mono font-bold text-sm">{state.macro.signals.trend.toFixed(0)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] uppercase text-slate-500 font-black tracking-widest">Volatility</p>
+                <p className="font-mono font-bold text-sm">{state.macro.signals.volatility.toFixed(0)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] uppercase text-slate-500 font-black tracking-widest">Breadth</p>
+                <p className="font-mono font-bold text-sm">{state.macro.signals.breadth.toFixed(0)}</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2 text-center">
+              Sizing: <span className="font-bold text-white">{(state.macro.sizingMultiplier * 100).toFixed(0)}%</span> of base position
+              {!state.macro.allowNewLongs && <span className="text-red-400 ml-2">· New longs blocked</span>}
+            </p>
           </div>
         )}
 
@@ -578,6 +670,80 @@ export default function TradingDashboard() {
                 onChange={(e) => engine.updateRiskSettings({ maxOpenPositions: parseInt(e.target.value) })}
                 className="w-full accent-emerald-500"
               />
+            </div>
+          </div>
+        </Collapsible>
+
+        {/* Circuit Breaker Settings */}
+        <Collapsible title="Circuit Breaker" icon={<ShieldAlert className="w-4 h-4" />}>
+          <div className="space-y-4">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Automatically halts auto-trading when limits are hit. Prevents runaway losses on bad days or strategy breakdown.
+            </p>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-400">Daily Loss Limit</span>
+                <span className="font-bold text-white">{state.breakerSettings.dailyLossPct}%</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                step={0.5}
+                value={state.breakerSettings.dailyLossPct}
+                onChange={(e) => engine.updateBreakerSettings({ dailyLossPct: parseFloat(e.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-400">Consecutive Loss Trades</span>
+                <span className="font-bold text-white">{state.breakerSettings.consecutiveLosses}</span>
+              </div>
+              <input
+                type="range"
+                min={2}
+                max={10}
+                step={1}
+                value={state.breakerSettings.consecutiveLosses}
+                onChange={(e) => engine.updateBreakerSettings({ consecutiveLosses: parseInt(e.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-400">Cooldown After Trip</span>
+                <span className="font-bold text-white">{state.breakerSettings.cooldownMinutes} min</span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={240}
+                step={5}
+                value={state.breakerSettings.cooldownMinutes}
+                onChange={(e) => engine.updateBreakerSettings({ cooldownMinutes: parseInt(e.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </div>
+            <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-500 space-y-1">
+              <div className="flex justify-between">
+                <span>Status</span>
+                <span className={cn('font-bold', state.breakerState.tripped ? 'text-red-400' : 'text-emerald-400')}>
+                  {state.breakerState.tripped ? 'TRIPPED' : 'ARMED'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Trips Today</span>
+                <span className="font-mono">{state.breakerState.trippedToday}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Recent Trade P&L</span>
+                <span className="font-mono">
+                  {state.breakerState.recentTradePLs.length > 0
+                    ? state.breakerState.recentTradePLs.slice(0, 5).map((p) => p.toFixed(1) + '%').join(' / ')
+                    : '—'}
+                </span>
+              </div>
             </div>
           </div>
         </Collapsible>

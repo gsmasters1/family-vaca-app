@@ -6,6 +6,19 @@ import type { CombinedSignal } from '../services/tradingStrategy';
 import { checkRisk, shouldExitPosition } from '../services/riskManager';
 import type { RiskSettings } from '../services/riskManager';
 import { DEFAULT_RISK_SETTINGS } from '../services/riskManager';
+import {
+  DEFAULT_BREAKER_SETTINGS,
+  evaluateBreaker,
+  loadBreakerState,
+  saveBreakerState,
+  resetBreaker,
+  onCircuitTripped,
+  isBuyBlocked,
+  canResume,
+} from '../services/circuitBreaker';
+import type { CircuitBreakerSettings, CircuitBreakerState } from '../services/circuitBreaker';
+import { evaluateMacroGate } from '../services/macroGate';
+import type { MacroResult } from '../services/macroGate';
 
 export const DEFAULT_WATCHLIST = [
   'SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA',
@@ -26,6 +39,9 @@ export interface TradingState {
   watchlist: string[];
   watchlistData: Record<string, WatchlistEntry>;
   riskSettings: RiskSettings;
+  breakerSettings: CircuitBreakerSettings;
+  breakerState: CircuitBreakerState;
+  macro: MacroResult | null;
   autoTrading: boolean;
   paperMode: boolean;
   isMarketOpen: boolean;
@@ -43,6 +59,9 @@ export interface TradingEngine {
   cancelOrder(id: string): Promise<void>;
   closePosition(symbol: string): Promise<void>;
   updateRiskSettings(s: Partial<RiskSettings>): void;
+  updateBreakerSettings(s: Partial<CircuitBreakerSettings>): void;
+  resetCircuitBreaker(): void;
+  refreshMacroGate(): Promise<void>;
   refreshData(): Promise<void>;
   refreshSignal(symbol: string): Promise<void>;
   addToWatchlist(symbol: string): void;
@@ -60,6 +79,9 @@ export function useTradingEngine(): TradingEngine {
     watchlist: [...DEFAULT_WATCHLIST],
     watchlistData: {},
     riskSettings: { ...DEFAULT_RISK_SETTINGS },
+    breakerSettings: { ...DEFAULT_BREAKER_SETTINGS },
+    breakerState: loadBreakerState(),
+    macro: null,
     autoTrading: false,
     paperMode: true,
     isMarketOpen: false,
@@ -115,16 +137,32 @@ export function useTradingEngine(): TradingEngine {
         client.isMarketOpen(),
       ]);
 
-      setState((prev) => ({
-        ...prev,
-        account,
-        positions,
-        orders,
-        isMarketOpen,
-        loading: false,
-        error: null,
-        lastRefresh: new Date(),
-      }));
+      setState((prev) => {
+        const evalResult = evaluateBreaker({
+          account,
+          settings: prev.breakerSettings,
+          prevState: prev.breakerState,
+        });
+        const nextBreakerState = evalResult.state;
+        saveBreakerState(nextBreakerState);
+
+        if (evalResult.newlyTripped) {
+          logAutoTrade(`CIRCUIT BREAKER TRIPPED: ${evalResult.tripReason}`);
+          onCircuitTripped(() => client.cancelAllOrders()).catch(() => undefined);
+        }
+
+        return {
+          ...prev,
+          account,
+          positions,
+          orders,
+          isMarketOpen,
+          breakerState: nextBreakerState,
+          loading: false,
+          error: null,
+          lastRefresh: new Date(),
+        };
+      });
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -183,6 +221,18 @@ export function useTradingEngine(): TradingEngine {
     }
   }, [getClient]);
 
+  // Macro gate refresh — runs less frequently than signals
+  const refreshMacroGate = useCallback(async () => {
+    const client = getClient();
+    if (!KEY_ID || !SECRET_KEY) return;
+    try {
+      const macro = await evaluateMacroGate(client);
+      setState((prev) => ({ ...prev, macro }));
+    } catch {
+      // silent — keep previous macro state
+    }
+  }, [getClient]);
+
   // Auto-trading loop
   const runAutoTrade = useCallback(async () => {
     if (!autoTradeRef.current) return;
@@ -197,10 +247,16 @@ export function useTradingEngine(): TradingEngine {
     logAutoTrade('Running auto-trade cycle...');
 
     setState((prev) => {
-      const { account, positions, riskSettings, watchlistData } = prev;
+      const { account, positions, riskSettings, watchlistData, breakerState, breakerSettings, macro } = prev;
       if (!account) return prev;
 
-      // Check exit conditions for existing positions
+      // CIRCUIT BREAKER — halt new buys when tripped
+      if (isBuyBlocked(breakerState, breakerSettings)) {
+        logAutoTrade(`Circuit breaker active — auto-trade halted (${breakerState.reason || 'tripped'})`);
+        return prev;
+      }
+
+      // Check exit conditions for existing positions (sells always allowed unless block_all)
       for (const position of positions) {
         const exitCheck = shouldExitPosition(position, riskSettings);
         if (exitCheck.exit) {
@@ -210,6 +266,14 @@ export function useTradingEngine(): TradingEngine {
           }).catch((err: Error) => logAutoTrade(`Failed to close ${position.symbol}: ${err.message}`));
         }
       }
+
+      // MACRO GATE — block new longs in defensive regime
+      if (macro && !macro.allowNewLongs) {
+        logAutoTrade(`Macro DEFENSIVE — new longs disabled (score: ${macro.score.toFixed(0)})`);
+        return prev;
+      }
+
+      const sizingMultiplier = macro?.sizingMultiplier ?? 1.0;
 
       // Check entry signals for watchlist
       for (const symbol of watchlistRef.current) {
@@ -226,14 +290,18 @@ export function useTradingEngine(): TradingEngine {
           continue;
         }
 
+        // Apply macro sizing multiplier
+        const adjQty = Math.max(1, Math.floor(riskCheck.qty * sizingMultiplier));
+
         client.placeOrder({
           symbol,
-          qty: riskCheck.qty,
+          qty: adjQty,
           side: 'buy',
           type: 'market',
           time_in_force: client.isCrypto(symbol) ? 'gtc' : 'day',
         }).then((order) => {
-          logAutoTrade(`BUY ${riskCheck.qty}x ${symbol} @ market (confidence: ${(entry.signal!.confidence * 100).toFixed(0)}%)`);
+          const sizingNote = sizingMultiplier < 1 ? ` (macro ${(sizingMultiplier * 100).toFixed(0)}% sizing)` : '';
+          logAutoTrade(`BUY ${adjQty}x ${symbol} @ market${sizingNote} (conf: ${(entry.signal!.confidence * 100).toFixed(0)}%)`);
           refreshData();
           return order;
         }).catch((err: Error) => logAutoTrade(`Failed to buy ${symbol}: ${err.message}`));
@@ -252,15 +320,19 @@ export function useTradingEngine(): TradingEngine {
   useEffect(() => {
     refreshData();
     refreshQuotes();
+    refreshMacroGate();
 
     const accountInterval = setInterval(refreshData, 30_000);
     const quoteInterval = setInterval(refreshQuotes, 10_000);
     const autoTradeInterval = setInterval(runAutoTrade, 5 * 60_000);
+    // Macro signals change slowly — refresh every 15 minutes
+    const macroInterval = setInterval(refreshMacroGate, 15 * 60_000);
 
     return () => {
       clearInterval(accountInterval);
       clearInterval(quoteInterval);
       clearInterval(autoTradeInterval);
+      clearInterval(macroInterval);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -309,6 +381,25 @@ export function useTradingEngine(): TradingEngine {
     setState((prev) => ({ ...prev, riskSettings: { ...prev.riskSettings, ...s } }));
   };
 
+  const updateBreakerSettings = (s: Partial<CircuitBreakerSettings>) => {
+    setState((prev) => ({ ...prev, breakerSettings: { ...prev.breakerSettings, ...s } }));
+  };
+
+  const resetCircuitBreaker = () => {
+    setState((prev) => {
+      const resume = canResume(prev.breakerState, prev.breakerSettings);
+      if (!resume.ok) {
+        const minsLeft = Math.ceil(resume.waitMs / 60_000);
+        logAutoTrade(`Cannot reset breaker — cooldown ${minsLeft} min remaining`);
+        return prev;
+      }
+      const next = resetBreaker(prev.breakerState);
+      saveBreakerState(next);
+      logAutoTrade('Circuit breaker manually RESET');
+      return { ...prev, breakerState: next };
+    });
+  };
+
   const addToWatchlist = (symbol: string) => {
     const sym = symbol.trim().toUpperCase();
     if (!sym) return;
@@ -339,6 +430,9 @@ export function useTradingEngine(): TradingEngine {
     cancelOrder,
     closePosition,
     updateRiskSettings,
+    updateBreakerSettings,
+    resetCircuitBreaker,
+    refreshMacroGate,
     refreshData,
     refreshSignal,
     addToWatchlist,
